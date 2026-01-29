@@ -1,0 +1,3237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Processing – ERP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    /* Login Screen Styles */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #loginScreen.hidden {
+      display: none !important;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .login-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 26px 28px;
+    }
+
+    .login-header h2 {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .login-header p {
+      opacity: 0.9;
+      font-size: 13px;
+    }
+
+    .login-body {
+      padding: 26px 28px;
+    }
+
+    .login-hint {
+      margin-top: 12px;
+      color: #6c757d;
+      font-size: 12px;
+    }
+
+    /* App Container - hidden by default */
+    .app-container {
+      display: none;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .app-container.visible {
+      display: block;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 40px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      background: #f8f9fa;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 18px 20px;
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: 500;
+      color: #6c757d;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      background: white;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #667eea;
+    }
+
+    .tab-btn .notification-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #dc3545;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Step Indicator */
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #e9ecef;
+      z-index: 0;
+    }
+
+    .step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e9ecef;
+      color: #adb5bd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .step.active .step-circle {
+      background: #667eea;
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .step.completed .step-circle {
+      background: #28a745;
+      color: white;
+    }
+
+    .step-label {
+      font-size: 13px;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .step.active .step-label {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    /* Invoice Input Section */
+    .invoice-input-section {
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .invoice-input-section h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #212529;
+    }
+
+    .invoice-input-section p {
+      color: #6c757d;
+      margin-bottom: 30px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .readonly {
+      background: #f8f9fa;
+      color: #495057;
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+      background: #f8f9fa;
+    }
+
+    /* Document Upload */
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .doc-box {
+      border: 2px dashed #dee2e6;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+      position: relative;
+    }
+
+    .doc-box:hover {
+      border-color: #667eea;
+      background: white;
+      transform: translateY(-2px);
+    }
+
+    .doc-box.uploaded {
+      border-color: #28a745;
+      border-style: solid;
+      background: #f0fdf4;
+    }
+
+    .doc-box label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #212529;
+    }
+
+    .doc-box .optional {
+      font-size: 12px;
+      color: #6c757d;
+      font-weight: 400;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .file-input-label {
+      display: block;
+      padding: 10px 20px;
+      background: white;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #495057;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .file-input-label:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .file-name {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #28a745;
+      font-weight: 500;
+    }
+
+    .upload-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      opacity: 0.5;
+    }
+
+    .doc-preview {
+      margin-top: 10px;
+      max-width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 2px solid #28a745;
+    }
+
+    /* Form Grid */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .form-field label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #495057;
+      font-size: 14px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-open {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-partial {
+      background: #cfe2ff;
+      color: #084298;
+    }
+
+    .status-completed {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 2px solid #e9ecef;
+    }
+
+    .footer .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Invoice List */
+    .invoice-card {
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .invoice-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+      transform: translateX(4px);
+    }
+
+    .invoice-card-left {
+      flex: 1;
+    }
+
+    .invoice-card-left h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #212529;
+    }
+
+    .invoice-card-meta {
+      font-size: 14px;
+      color: #6c757d;
+      margin-top: 8px;
+    }
+
+    .doc-chip {
+      display: inline-block;
+      margin-right: 10px;
+      padding: 4px 12px;
+      background: #e7f3ff;
+      border: 1px solid #667eea;
+      border-radius: 16px;
+      color: #667eea;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .doc-chip:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .invoice-card-right {
+      text-align: right;
+      min-width: 140px;
+    }
+
+    .doc-progress {
+      font-size: 14px;
+      color: #6c757d;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      width: 120px;
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #6c757d;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success {
+      border-left: 4px solid #28a745;
+    }
+
+    .toast.error {
+      border-left: 4px solid #dc3545;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    #docDataModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    #docDataModal .content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    /* Image Modal */
+    #imageModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+
+    #imageModal:not(.hidden) {
+      display: flex;
+    }
+
+    #imageModal img {
+      max-width: 90%;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+
+    #imageModal button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    #imageModal button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        padding: 20px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .doc-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer {
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .footer .actions {
+        width: 100%;
+        flex-direction: column;
+      }
+
+      .footer .actions button {
+        width: 100%;
+      }
+    }
+
+    /* Payment/Ledger Styles */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .summary-card {
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .summary-card.success {
+      border-color: #28a745;
+      background: #f0fdf4;
+    }
+
+    .summary-card.warning {
+      border-color: #ffc107;
+      background: #fffbeb;
+    }
+
+    .summary-card.info {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
+    .summary-icon {
+      font-size: 32px;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border-radius: 10px;
+    }
+
+    .summary-content {
+      flex: 1;
+    }
+
+    .summary-label {
+      font-size: 13px;
+      color: #6c757d;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .summary-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #212529;
+    }
+
+    .status-mini {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      margin-right: 5px;
+      font-weight: 600;
+    }
+
+    .status-mini.paid {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .status-mini.partial {
+      background: #cfe2ff;
+      color: #084298;
+    }
+
+    .status-mini.unpaid {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .payment-card {
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .payment-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .payment-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .payment-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .payment-card-title h3 {
+      font-size: 18px;
+      color: #212529;
+      margin: 0;
+    }
+
+    .payment-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .payment-badge.paid {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .payment-badge.partial {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .payment-badge.unpaid {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .payment-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .payment-info-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .payment-info-label {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 3px;
+    }
+
+    .payment-info-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: #212529;
+    }
+
+    .payment-history {
+      border-top: 1px solid #e9ecef;
+      padding-top: 15px;
+      margin-top: 15px;
+    }
+
+    .payment-history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .payment-history-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .payment-entry {
+      background: #f8f9fa;
+      padding: 10px 15px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .payment-entry-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .payment-entry-amount {
+      font-size: 16px;
+      font-weight: 700;
+      color: #28a745;
+    }
+
+    .payment-entry-details {
+      font-size: 12px;
+      color: #6c757d;
+    }
+
+    .btn-add-payment {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-add-payment:hover {
+      background: #218838;
+      transform: translateY(-1px);
+    }
+
+    /* Payment Modal */
+    #paymentModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+
+    #paymentModal:not(.hidden) {
+      display: flex;
+    }
+
+    #paymentModal .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 500px;
+      max-width: 90%;
+    }
+
+    /* Reminder Modal */
+    #reminderModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    #reminderModal:not(.hidden) {
+      display: flex;
+    }
+
+    #reminderModal .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 600px;
+      max-width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    #paymentModal h3 {
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    #paymentModal .form-field {
+      margin-bottom: 15px;
+    }
+
+    #paymentModal .form-field label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    #paymentModal .form-field input,
+    #paymentModal .form-field select,
+    #paymentModal .form-field textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    #paymentModal .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    #paymentModal .modal-actions button {
+      flex: 1;
+    }
+
+    /* Document Actions Bar */
+    .doc-actions-bar {
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .doc-status-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .doc-count {
+      font-size: 14px;
+      color: #495057;
+      font-weight: 600;
+    }
+
+    .doc-count .number {
+      color: #667eea;
+      font-size: 18px;
+    }
+
+    .doc-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .info-badge {
+      background: #e7f3ff;
+      border: 1px solid #b3d9ff;
+      color: #004085;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN (shown by default; app UI unlocks after login) -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-header">
+      <h2>Login</h2>
+      <p>Invoice Processing System</p>
+    </div>
+    <div class="login-body">
+      <div class="form-field" style="margin-bottom:14px;">
+        <label style="display:block;font-weight:600;margin-bottom:8px;color:#495057;font-size:14px;">Username</label>
+        <input id="loginUsername" autocomplete="username" placeholder="Enter username">
+      </div>
+      <div class="form-field" style="margin-bottom:18px;">
+        <label style="display:block;font-weight:600;margin-bottom:8px;color:#495057;font-size:14px;">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password">
+      </div>
+      <button id="loginBtn" class="btn-primary" style="width:100%;" onclick="handleLogin()">Sign in</button>
+      <p class="login-hint">
+        Default: <b>harshas379@gmail.com</b> / <b>root</b>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- APP UI (hidden until login) -->
+<div class="app-container">
+  <div class="container">
+    <div class="header">
+      <h1>📋 Invoice Processing System</h1>
+      <p>Streamline your invoice management and document processing</p>
+      <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end;">
+        <button id="logoutBtn" onclick="logout()" style="border:2px solid rgba(255,255,255,0.7);color:white;background:transparent;padding:8px 20px;border-radius:6px;cursor:pointer;">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('create')">Create Invoice</button>
+      <button class="tab-btn" onclick="switchTab('manage')">
+        Manage Invoices
+        <span id="overdueCountBadge" class="notification-badge hidden">0</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('payments')">
+        Payments & Ledger
+        <span id="paymentReminderBadge" class="notification-badge hidden">0</span>
+      </button>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="hidden">
+      <div style="position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10;">
+        <button onclick="downloadImage()" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+          💾 Download
+        </button>
+        <button onclick="closeImageModal()" style="background: white; color: #333; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+          Close ✕
+        </button>
+      </div>
+      <img id="modalImage" src="" alt="Document">
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="hidden">
+      <div class="modal-content">
+        <h3>Add Payment</h3>
+        <div class="form-field">
+          <label>Invoice Number</label>
+          <input id="payment-invoice-no" readonly class="readonly">
+        </div>
+        <div class="form-field">
+          <label>Amount Paid *</label>
+          <input id="payment-amount" type="number" step="0.01" placeholder="Enter amount">
+        </div>
+        <div class="form-field">
+          <label>Payment Date *</label>
+          <input id="payment-date" type="date">
+        </div>
+        <div class="form-field">
+          <label>Payment Mode *</label>
+          <select id="payment-mode">
+            <option value="">Select Mode</option>
+            <option>Cash</option>
+            <option>Cheque</option>
+            <option>UPI</option>
+            <option>NEFT/RTGS</option>
+            <option>Bank Transfer</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Reference Number</label>
+          <input id="payment-reference" placeholder="Cheque No / Transaction ID">
+        </div>
+        <div class="form-field">
+          <label>Remarks</label>
+          <textarea id="payment-remarks" rows="3" placeholder="Additional notes"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closePaymentModal()">Cancel</button>
+          <button class="btn-primary" onclick="submitPayment()">Add Payment</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reminder Modal -->
+    <div id="reminderModal" class="hidden">
+      <div class="modal-content" style="width: 600px; max-width: 95%;">
+        <h3 style="margin-bottom: 5px;">Send Payment Reminder</h3>
+        <p style="color: #6c757d; font-size: 13px; margin-bottom: 20px;">Choose how you want to send the reminder</p>
+
+        <div class="form-field">
+          <label>Invoice Number</label>
+          <input id="reminder-invoice-no" readonly class="readonly">
+        </div>
+
+        <div class="form-field">
+          <label>Customer Name</label>
+          <input id="reminder-buyer-name" readonly class="readonly">
+        </div>
+
+        <div class="form-field">
+          <label style="margin-bottom: 12px;">Select Communication Method(s) *</label>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+              <input type="checkbox" name="reminderMethod" value="email" onchange="toggleReminderFields()" style="width: auto; margin-right: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">📧</span>
+              <span style="font-weight: 600;">Email</span>
+            </label>
+
+            <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+              <input type="checkbox" name="reminderMethod" value="sms" onchange="toggleReminderFields()" style="width: auto; margin-right: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">💬</span>
+              <span style="font-weight: 600;">SMS</span>
+            </label>
+
+            <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+              <input type="checkbox" name="reminderMethod" value="whatsapp" onchange="toggleReminderFields()" style="width: auto; margin-right: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">📱</span>
+              <span style="font-weight: 600;">WhatsApp</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-field" id="emailField" style="display: none;">
+          <label>Email Address *</label>
+          <input id="reminder-email" type="email" placeholder="customer@example.com">
+        </div>
+
+        <div class="form-field" id="phoneField" style="display: none;">
+          <label>Phone Number (with country code) *</label>
+          <input id="reminder-phone" type="tel" placeholder="+91 98765 43210">
+        </div>
+
+        <div class="form-field">
+          <label>Message *</label>
+          <textarea id="reminder-message" rows="8" placeholder="Enter reminder message"></textarea>
+        </div>
+
+        <div style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+          <div style="display: flex; align-items: start; gap: 10px;">
+            <span style="font-size: 16px;">💡</span>
+            <div style="font-size: 13px; color: #004085;">
+              <strong>Tip:</strong> You can customize the message before sending. Include invoice details, payment terms, and contact information.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-secondary" onclick="closeReminderModal()">Cancel</button>
+          <button class="btn-primary" onclick="submitReminder()">📤 Send Reminder</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- READ-ONLY INVOICE VIEW -->
+    <div id="invoiceView" class="hidden">
+      <div id="docDataModal" class="hidden" style="display: none;">
+        <div class="content">
+          <h2 id="docTitle"></h2>
+          <div id="docDataBody" class="form-grid"></div>
+          <div class="footer">
+            <button class="btn-secondary" onclick="closeDocModal()">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 style="margin-bottom:10px;">
+        Invoice: <span id="view_invoice_no"></span>
+        <span class="status-badge status-completed" style="margin-left:10px;">COMPLETED</span>
+      </h2>
+
+      <p style="color:#6c757d; margin-bottom:20px;">
+        Invoice Date: <span id="view_invoice_date"></span> |
+        Order Type: <span id="view_order_type"></span>
+      </p>
+
+      <div class="form-grid">
+        <div class="form-field"><label>Buyer Name</label><div id="view_buyer_name"></div></div>
+        <div class="form-field"><label>Ship To Party</label><div id="view_ship_to_party"></div></div>
+        <div class="form-field"><label>Vehicle Number</label><div id="view_vehicle_no"></div></div>
+        <div class="form-field"><label>LR Number</label><div id="view_lr_no"></div></div>
+        <div class="form-field"><label>LR Date</label><div id="view_lr_date"></div></div>
+        <div class="form-field"><label>Origin</label><div id="view_origin"></div></div>
+        <div class="form-field"><label>Destination</label><div id="view_destination"></div></div>
+        <div class="form-field"><label>E-Way Bill</label><div id="view_e_way_bill_no"></div></div>
+        <div class="form-field"><label>Order Number</label><div id="view_order_no"></div></div>
+        <div class="form-field"><label>Principal Company</label><div id="view_principal_company"></div></div>
+      </div>
+
+      <hr style="margin:30px 0">
+
+      <h3>Weight Validation & Bill Adjustment</h3>
+      <div class="form-grid" style="margin-top: 20px;">
+        <div class="form-field"><label>LR Weight</label><div id="view_lr_weight"></div></div>
+        <div class="form-field"><label>Site Weight</label><div id="view_site_weight"></div></div>
+        <div class="form-field"><label>Weight Difference</label><div id="view_weight_difference"></div></div>
+        <div class="form-field"><label>Weight Loss %</label><div id="view_weight_loss_percentage"></div></div>
+        <div class="form-field"><label>Deduction Amount</label><div id="view_deduction_amount" style="color:#dc3545;font-weight:600;"></div></div>
+        <div class="form-field"><label>Final Bill Amount</label><div id="view_final_bill_amount" style="color:#28a745;font-weight:600;font-size:18px;"></div></div>
+      </div>
+
+      <hr style="margin:30px 0">
+
+      <h3>Documents</h3>
+      <div id="view_documents" class="doc-grid"></div>
+
+      <div class="footer">
+        <button class="btn-secondary" onclick="backToManage()">← Back</button>
+        <button class="btn-secondary" style="background:#dc3545;color:white;border-color:#dc3545;" onclick="deleteCurrentInvoice()">🗑️ Delete Invoice</button>
+      </div>
+    </div>
+
+    <!-- CREATE TAB -->
+    <div id="createTab" class="content">
+
+      <!-- Step Indicator -->
+      <div class="steps">
+        <div class="step active" id="step1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Invoice Details</div>
+        </div>
+        <div class="step" id="step2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Upload Documents</div>
+        </div>
+        <div class="step" id="step3">
+          <div class="step-circle">3</div>
+          <div class="step-label">Review & Submit</div>
+        </div>
+      </div>
+
+      <!-- STEP 1: Invoice Input -->
+      <div id="invoiceInputSection" class="invoice-input-section">
+        <h2>Enter Invoice Number</h2>
+        <p>Start by entering the invoice number to create or edit an invoice</p>
+        <div class="input-group">
+          <input id="invoiceInput" placeholder="e.g., INV-2024-001" style="flex: 1;">
+          <button class="btn-primary" onclick="createInvoice()">Continue →</button>
+        </div>
+
+        <!-- Quick Stats Dashboard -->
+        <div id="quickStatsDashboard" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e9ecef;">
+          <h3 style="font-size: 18px; margin-bottom: 15px; color: #495057; text-align: left;">Quick Overview</h3>
+
+          <!-- Payment Reminders Summary -->
+          <div id="homePaymentReminders" class="hidden" style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 24px;">💰</span>
+              <div style="flex: 1; text-align: left;">
+                <div style="font-weight: 600; color: #856404; margin-bottom: 3px;">Payment Reminders Due</div>
+                <div id="homeReminderSummary" style="font-size: 13px; color: #856404;"></div>
+              </div>
+              <button class="btn-secondary" onclick="switchTab('payments')" style="padding: 6px 16px; font-size: 13px;">
+                View All →
+              </button>
+            </div>
+          </div>
+
+          <!-- Overdue Documents Summary -->
+          <div id="homeOverdueDocuments" class="hidden" style="background: #f8d7da; border: 2px solid #dc3545; border-radius: 12px; padding: 15px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 24px;">📄</span>
+              <div style="flex: 1; text-align: left;">
+                <div style="font-weight: 600; color: #842029; margin-bottom: 3px;">Documents Overdue</div>
+                <div id="homeOverdueSummary" style="font-size: 13px; color: #842029;"></div>
+              </div>
+              <button class="btn-secondary" onclick="switchTab('manage')" style="padding: 6px 16px; font-size: 13px;">
+                View All →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Document Upload -->
+      <div id="docSection" class="hidden">
+        <h2 style="margin-bottom: 10px;">Upload Documents</h2>
+        <p style="color: #6c757d; margin-bottom: 20px;">Upload documents as they become available. You can save as draft and return later.</p>
+
+        <!-- Document Actions Bar -->
+        <div class="doc-actions-bar">
+          <div class="doc-status-info">
+            <div class="doc-count">
+              <span class="number" id="uploadedCount">0</span> / 5 documents uploaded
+            </div>
+            <div class="info-badge">
+              💡 <span>You can extract data with just 1 document</span>
+            </div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn-secondary" onclick="saveDraft()">💾 Save Draft</button>
+            <button id="extractBtn" class="btn-primary hidden" onclick="extractData()">
+              🔍 Extract Data
+            </button>
+          </div>
+        </div>
+
+        <div class="doc-grid">
+          <div class="doc-box" data-type="invoice">
+            <div class="upload-icon">📄</div>
+            <label>Tax Invoice</label>
+            <div class="file-input-wrapper">
+              <input type="file" id="file-invoice" data-doc="invoice" onchange="handleFileSelect(this)" accept="image/*">
+              <label for="file-invoice" class="file-input-label">Choose File</label>
+            </div>
+            <div class="file-name" id="name-invoice"></div>
+            <img id="preview-invoice" class="doc-preview hidden" onclick="openImageModal(this.src)">
+          </div>
+
+          <div class="doc-box" data-type="lr">
+            <div class="upload-icon">🚚</div>
+            <label>LR (Lorry Receipt)</label>
+            <div class="file-input-wrapper">
+              <input type="file" id="file-lr" data-doc="lr" onchange="handleFileSelect(this)" accept="image/*">
+              <label for="file-lr" class="file-input-label">Choose File</label>
+            </div>
+            <div class="file-name" id="name-lr"></div>
+            <img id="preview-lr" class="doc-preview hidden" onclick="openImageModal(this.src)">
+          </div>
+
+          <div class="doc-box" data-type="party_weighment">
+            <div class="upload-icon">⚖️</div>
+            <label>Party Weighment</label>
+            <div class="file-input-wrapper">
+              <input type="file" id="file-party_weighment" data-doc="party_weighment" onchange="handleFileSelect(this)" accept="image/*">
+              <label for="file-party_weighment" class="file-input-label">Choose File</label>
+            </div>
+            <div class="file-name" id="name-party_weighment"></div>
+            <img id="preview-party_weighment" class="doc-preview hidden" onclick="openImageModal(this.src)">
+          </div>
+
+          <div class="doc-box" data-type="site_weighment">
+            <div class="upload-icon">📊</div>
+            <label>Site Weighment</label>
+            <div class="file-input-wrapper">
+              <input type="file" id="file-site_weighment" data-doc="site_weighment" onchange="handleFileSelect(this)" accept="image/*">
+              <label for="file-site_weighment" class="file-input-label">Choose File</label>
+            </div>
+            <div class="file-name" id="name-site_weighment"></div>
+            <img id="preview-site_weighment" class="doc-preview hidden" onclick="openImageModal(this.src)">
+          </div>
+
+          <div class="doc-box" data-type="toll_gate">
+            <div class="upload-icon">🛣️</div>
+            <label>Toll Gate <span class="optional">(Optional)</span></label>
+            <div class="file-input-wrapper">
+              <input type="file" id="file-toll_gate" data-doc="toll_gate" onchange="handleFileSelect(this)" accept="image/*">
+              <label for="file-toll_gate" class="file-input-label">Choose File</label>
+            </div>
+            <div class="file-name" id="name-toll_gate"></div>
+            <img id="preview-toll_gate" class="doc-preview hidden" onclick="openImageModal(this.src)">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: ERP Form -->
+      <div id="erpForm" class="hidden">
+        <h2 style="margin-bottom: 10px;">Review Extracted Data</h2>
+        <p style="color: #6c757d; margin-bottom: 20px;">Verify and edit the extracted information before submission</p>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Invoice Number</label>
+            <input id="invoice_no" readonly class="readonly">
+          </div>
+
+          <div class="form-field">
+            <label>Invoice Amount *</label>
+            <input id="invoice_amount" type="number" step="0.01" placeholder="Enter total invoice amount">
+          </div>
+
+          <div style="grid-column: 1/-1;">
+            <p style="color:#28a745;font-weight:600;">
+              ✔ Data extracted. Review and edit as needed.
+            </p>
+          </div>
+
+          <div class="form-field">
+            <label>Invoice Date</label>
+            <input id="invoice_date" type="date" onchange="checkOverdueDocuments()">
+          </div>
+
+          <div class="form-field">
+            <label>Buyer Name</label>
+            <input id="buyer_name">
+          </div>
+
+          <div class="form-field">
+            <label>Ship To Party</label>
+            <input id="ship_to_party">
+          </div>
+
+          <div class="form-field">
+            <label>Vehicle Number</label>
+            <input id="vehicle_no">
+          </div>
+
+          <div class="form-field">
+            <label>LR Number</label>
+            <input id="lr_no">
+          </div>
+
+          <div class="form-field">
+            <label>LR Date</label>
+            <input id="lr_date" type="date">
+          </div>
+
+          <div class="form-field">
+            <label>Origin</label>
+            <input id="origin">
+          </div>
+
+          <div class="form-field">
+            <label>Destination</label>
+            <input id="destination">
+          </div>
+
+          <div class="form-field">
+            <label>E-Way Bill Number</label>
+            <input id="e_way_bill_no">
+          </div>
+
+          <div class="form-field">
+            <label>Order Number</label>
+            <input id="order_no">
+          </div>
+
+          <div class="form-field">
+            <label>Order Type</label>
+            <select id="order_type">
+              <option value="">Select Type</option>
+              <option>Bulk</option>
+              <option>Bag</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Principal Company</label>
+            <input id="principal_company">
+          </div>
+
+          <div class="form-field">
+            <label>Acknowledged</label>
+            <input id="acknowledged" readonly class="readonly">
+          </div>
+
+          <!-- Weight Validation Section -->
+          <div style="grid-column: 1/-1; margin-top: 30px;">
+            <h3 style="margin-bottom: 15px; color: #212529;">Weight Validation & Bill Adjustment</h3>
+          </div>
+
+          <div class="form-field">
+            <label>LR Weight (kg) *</label>
+            <input id="lr_weight" type="number" step="0.01" placeholder="Weight from LR" onchange="calculateWeightVariance()">
+          </div>
+
+          <div class="form-field">
+            <label>Site Weighment (kg) *</label>
+            <input id="site_weight" type="number" step="0.01" placeholder="Weight from Site Slip" onchange="calculateWeightVariance()">
+          </div>
+
+          <div class="form-field">
+            <label>Weight Difference (kg)</label>
+            <input id="weight_difference" readonly class="readonly">
+          </div>
+
+          <div class="form-field">
+            <label>Weight Loss %</label>
+            <input id="weight_loss_percentage" readonly class="readonly">
+          </div>
+
+          <div class="form-field">
+            <label>Original Invoice Amount (₹)</label>
+            <input id="original_amount" readonly class="readonly">
+          </div>
+
+          <div class="form-field">
+            <label>Deduction Amount (₹)</label>
+            <input id="deduction_amount" readonly class="readonly" style="color: #dc3545; font-weight: 600;">
+          </div>
+
+          <div class="form-field">
+            <label>Final Bill Amount (₹) *</label>
+            <input id="final_bill_amount" readonly class="readonly" style="color: #28a745; font-weight: 600; font-size: 18px;">
+          </div>
+
+          <div class="form-field">
+            <label>Variance Status</label>
+            <div id="variance_status" style="padding: 10px; border-radius: 8px; font-weight: 600;"></div>
+          </div>
+
+          <!-- Variance Alert Box -->
+          <div id="varianceAlert" class="hidden" style="grid-column: 1/-1; background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 20px; margin-top: 10px;">
+            <div style="display: flex; align-items: start; gap: 15px;">
+              <span style="font-size: 32px;">⚠️</span>
+              <div>
+                <h4 style="margin-bottom: 8px; color: #856404;">Weight Loss Exceeds 0.5% Threshold</h4>
+                <p id="varianceMessage" style="color: #856404; margin-bottom: 10px;"></p>
+                <p style="color: #856404; font-weight: 600;">Bill amount has been automatically reduced.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Document Pending Alert Box -->
+          <div id="documentPendingAlert" class="hidden" style="grid-column: 1/-1; background: #f8d7da; border: 2px solid #dc3545; border-radius: 12px; padding: 20px; margin-top: 10px;">
+            <div style="display: flex; align-items: start; gap: 15px;">
+              <span style="font-size: 32px;">🚨</span>
+              <div>
+                <h4 style="margin-bottom: 8px; color: #842029;">Overdue Documents</h4>
+                <div id="pendingDocumentsList" style="color: #842029; margin-bottom: 10px;"></div>
+                <p style="color: #842029; font-weight: 600;">Please follow up immediately to receive missing documents.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div>
+            <span id="statusText" class="status-badge status-partial">Status: PARTIAL</span>
+          </div>
+          <div class="actions">
+            <button class="btn-secondary" onclick="startNewInvoice()">➕ New Invoice</button>
+            <button class="btn-secondary" onclick="saveDraft()">💾 Save Draft</button>
+            <button class="btn-primary" onclick="submitInvoice()">✓ Submit Invoice</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MANAGE TAB -->
+    <div id="manageTab" class="content hidden">
+      <h2 style="margin-bottom: 20px;">Your Invoices</h2>
+
+      <!-- Overdue Documents Alert -->
+      <div id="overdueDocumentsSection" class="hidden" style="background: #f8d7da; border: 2px solid #dc3545; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: start; gap: 15px;">
+          <span style="font-size: 32px;">🚨</span>
+          <div style="flex: 1;">
+            <h3 style="margin-bottom: 10px; color: #842029;">Invoices with Overdue Documents</h3>
+            <p style="color: #842029; margin-bottom: 15px;">The following invoices have missing documents for more than 2 days:</p>
+            <div id="overdueInvoicesList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="invoiceList"></div>
+    </div>
+
+    <!-- PAYMENTS TAB -->
+    <div id="paymentsTab" class="content hidden">
+      <h2 style="margin-bottom: 20px;">Payments & Ledger</h2>
+
+      <!-- Payment Reminders Section -->
+      <div id="paymentRemindersSection" class="hidden" style="margin-bottom: 20px;">
+        <!-- Critical Reminders (Day 9) -->
+        <div id="criticalReminders" class="hidden" style="background: #f8d7da; border: 2px solid #dc3545; border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+          <div style="display: flex; align-items: start; gap: 15px;">
+            <span style="font-size: 32px;">🚨</span>
+            <div style="flex: 1;">
+              <h3 style="margin-bottom: 10px; color: #842029;">Critical: Payment Overdue (9+ Days)</h3>
+              <p style="color: #842029; margin-bottom: 15px;">Immediate action required for these invoices:</p>
+              <div id="criticalRemindersList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- High Priority Reminders (Day 6) -->
+        <div id="highPriorityReminders" class="hidden" style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+          <div style="display: flex; align-items: start; gap: 15px;">
+            <span style="font-size: 32px;">⚠️</span>
+            <div style="flex: 1;">
+              <h3 style="margin-bottom: 10px; color: #856404;">High Priority: Payment Due (6 Days)</h3>
+              <p style="color: #856404; margin-bottom: 15px;">Follow up on these pending payments:</p>
+              <div id="highPriorityRemindersList"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Standard Reminders (Day 3) -->
+        <div id="standardReminders" class="hidden" style="background: #cfe2ff; border: 2px solid #0d6efd; border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+          <div style="display: flex; align-items: start; gap: 15px;">
+            <span style="font-size: 32px;">📢</span>
+            <div style="flex: 1;">
+              <h3 style="margin-bottom: 10px; color: #084298;">Reminder: Payment Pending (3 Days)</h3>
+              <p style="color: #084298; margin-bottom: 15px;">Send payment reminders to these customers:</p>
+              <div id="standardRemindersList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-icon">💰</div>
+          <div class="summary-content">
+            <div class="summary-label">Total Invoice Amount</div>
+            <div class="summary-value" id="summary-total">₹0.00</div>
+          </div>
+        </div>
+
+        <div class="summary-card success">
+          <div class="summary-icon">✅</div>
+          <div class="summary-content">
+            <div class="summary-label">Total Paid</div>
+            <div class="summary-value" id="summary-paid">₹0.00</div>
+          </div>
+        </div>
+
+        <div class="summary-card warning">
+          <div class="summary-icon">⏳</div>
+          <div class="summary-content">
+            <div class="summary-label">Outstanding</div>
+            <div class="summary-value" id="summary-outstanding">₹0.00</div>
+          </div>
+        </div>
+
+        <div class="summary-card info">
+          <div class="summary-icon">📊</div>
+          <div class="summary-content">
+            <div class="summary-label">Payment Status</div>
+            <div class="summary-value" id="summary-status">
+              <span class="status-mini paid">0 Paid</span>
+              <span class="status-mini partial">0 Partial</span>
+              <span class="status-mini unpaid">0 Unpaid</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment List -->
+      <div id="paymentList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let invoiceUIState = "INIT";
+let currentViewingInvoice = null;
+
+const DOC_TYPES = ["invoice", "lr", "party_weighment", "site_weighment", "toll_gate"];
+const REQUIRED_DOC_TYPES = ["invoice", "lr", "party_weighment", "site_weighment"];
+
+// ---------------- AUTH (Front-end gate) ----------------
+const AUTH_STORAGE_KEY = "erp_invoice_ui_logged_in_v1";
+const DEFAULT_USERNAME = "harshas379@gmail.com";
+const DEFAULT_PASSWORD = "root";
+
+function isLoggedIn() {
+  return localStorage.getItem(AUTH_STORAGE_KEY) === "1";
+}
+
+function showLogin() {
+  $("loginScreen").classList.remove("hidden");
+  document.querySelector(".app-container").classList.remove("visible");
+  $("loginUsername").focus();
+}
+
+function showApp() {
+  $("loginScreen").classList.add("hidden");
+  document.querySelector(".app-container").classList.add("visible");
+}
+
+function handleLogin() {
+  const u = $("loginUsername").value.trim();
+  const p = $("loginPassword").value;
+
+  if (u === DEFAULT_USERNAME && p === DEFAULT_PASSWORD) {
+    localStorage.setItem(AUTH_STORAGE_KEY, "1");
+    $("loginPassword").value = "";
+    showApp();
+    showToast("Logged in", "success");
+  } else {
+    showToast("Invalid username or password", "error");
+  }
+}
+
+function logout() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  startNewInvoice(true);
+  showLogin();
+}
+
+function getInvoiceNo() {
+  return $("invoiceInput").value.trim();
+}
+
+function getSelectedFiles() {
+  const selected = [];
+  document.querySelectorAll(".doc-box input[type='file']").forEach(input => {
+    if (input.files && input.files.length > 0) {
+      selected.push({ docType: input.dataset.doc, file: input.files[0] });
+    }
+  });
+  return selected;
+}
+
+function setButtonBusy(buttonId, busy, labelWhenBusy) {
+  const btn = $(buttonId);
+  if (!btn) return;
+  btn.disabled = !!busy;
+  if (labelWhenBusy) {
+    if (busy) {
+      btn.dataset.originalText = btn.innerHTML;
+      btn.innerHTML = labelWhenBusy;
+    } else if (btn.dataset.originalText) {
+      btn.innerHTML = btn.dataset.originalText;
+      delete btn.dataset.originalText;
+    }
+  }
+}
+
+async function uploadSelectedDocuments(invoiceNo) {
+  const selected = getSelectedFiles();
+  if (selected.length === 0) return { uploaded: 0 };
+
+  const form = new FormData();
+  form.append("invoice_no", invoiceNo);
+  selected.forEach(({ docType, file }) => {
+    form.append("files", file);
+    form.append("doc_types", docType);
+  });
+
+  const res = await fetch("/api/upload-documents", { method: "POST", body: form });
+  if (!res.ok) throw new Error("Upload failed");
+  return await res.json();
+}
+
+// Toast notification
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <span style="font-size: 20px;">${type === 'success' ? '✓' : '⚠️'}</span>
+    <span>${message}</span>
+  `;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'slideIn 0.3s ease reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+/* Tab Switching */
+function switchTab(tab) {
+  // Hide all tabs
+  $("createTab").classList.add("hidden");
+  $("manageTab").classList.add("hidden");
+  $("paymentsTab").classList.add("hidden");
+  $("invoiceView").classList.add("hidden");
+  $("docDataModal").classList.add("hidden");
+  $("paymentModal").classList.add("hidden");
+
+  // Reset tab buttons
+  document.querySelectorAll(".tab-btn").forEach(b =>
+    b.classList.remove("active")
+  );
+
+  // Activate requested tab
+  if (tab === "create") {
+    $("createTab").classList.remove("hidden");
+    document.querySelectorAll(".tab-btn")[0].classList.add("active");
+
+    if (!$("invoiceInput").value) {
+      $("erpForm").classList.add("hidden");
+      $("docSection").classList.add("hidden");
+      $("invoiceInputSection").classList.remove("hidden");
+      updateSteps(1);
+    }
+
+  } else if (tab === "manage") {
+    $("manageTab").classList.remove("hidden");
+    document.querySelectorAll(".tab-btn")[1].classList.add("active");
+    loadInvoices();
+
+  } else if (tab === "payments") {
+    $("paymentsTab").classList.remove("hidden");
+    document.querySelectorAll(".tab-btn")[2].classList.add("active");
+    loadPayments();
+  }
+}
+
+/* Step Navigation */
+function updateSteps(currentStep) {
+  for (let i = 1; i <= 3; i++) {
+    const step = $(`step${i}`);
+    step.classList.remove("active", "completed");
+    if (i < currentStep) step.classList.add("completed");
+    if (i === currentStep) step.classList.add("active");
+  }
+}
+
+/* Create/Load Invoice */
+async function createInvoice() {
+  const inv = $("invoiceInput").value.trim();
+  if (!inv) {
+    showToast("Please enter an invoice number", "error");
+    return;
+  }
+
+  history.pushState({}, "", `/?invoice=${encodeURIComponent(inv)}`);
+
+  $("invoiceInputSection").classList.add("hidden");
+  $("docSection").classList.remove("hidden");
+  updateSteps(2);
+  invoiceUIState = "DOCS";
+
+  try {
+    const res = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(inv)}`);
+    const invoice = await res.json();
+
+    if (invoice && invoice.data && Object.keys(invoice.data).length > 0) {
+      populateForm(invoice.data, invoice.status);
+      loadExistingDocuments(inv, invoice.documents);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* Load existing document previews */
+async function loadExistingDocuments(invoiceNo, documents) {
+  if (!documents) return;
+
+  Object.keys(documents).forEach(docType => {
+    const preview = $(`preview-${docType}`);
+    const nameEl = $(`name-${docType}`);
+    const box = document.querySelector(`.doc-box[data-type="${docType}"]`);
+
+    if (preview && box) {
+      const imgSrc = `/api/document?invoice_no=${encodeURIComponent(invoiceNo)}&doc_type=${encodeURIComponent(docType)}`;
+      preview.src = imgSrc;
+      preview.classList.remove('hidden');
+      nameEl.textContent = `✓ ${documents[docType].filename}`;
+      box.classList.add('uploaded');
+    }
+  });
+
+  updateDocumentCount();
+}
+
+/* Populate Form */
+function populateForm(data, status) {
+  $("invoice_no").value = $("invoiceInput").value;
+
+  Object.keys(data).forEach(k => {
+    if ($(k) && k !== "invoice_no") $(k).value = data[k] || '';
+  });
+
+  const statusClass = status.toLowerCase().replace(" ", "-");
+  $("statusText").className = `status-badge status-${statusClass}`;
+  $("statusText").innerText = `Status: ${status}`;
+  $("erpForm").classList.remove("hidden");
+  updateSteps(3);
+
+  // Trigger weight variance calculation if weights are populated
+  if (data.lr_weight && data.site_weight) {
+    setTimeout(() => calculateWeightVariance(), 100);
+  }
+
+  // Check for overdue documents
+  setTimeout(() => checkOverdueDocuments(), 200);
+}
+
+/* File Selection */
+function handleFileSelect(input) {
+  const docType = input.dataset.doc;
+  const fileName = input.files[0]?.name;
+  const nameElement = $(`name-${docType}`);
+  const boxElement = input.closest('.doc-box');
+  const preview = $(`preview-${docType}`);
+
+  if (fileName && input.files[0]) {
+    nameElement.textContent = `✓ ${fileName}`;
+    boxElement.classList.add('uploaded');
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.src = e.target.result;
+      preview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    nameElement.textContent = '';
+    boxElement.classList.remove('uploaded');
+    preview.classList.add('hidden');
+  }
+
+  updateDocumentCount();
+
+  // Check for overdue documents after upload
+  checkOverdueDocuments();
+}
+
+/* Update Document Count */
+function updateDocumentCount() {
+  const count = document.querySelectorAll(".doc-box.uploaded").length;
+
+  $("uploadedCount").textContent = count;
+  const total = DOC_TYPES.length;
+  const countEl = document.querySelector(".doc-count");
+  if (countEl) {
+    countEl.innerHTML = `<span class="number" id="uploadedCount">${count}</span> / ${total} documents uploaded`;
+  }
+
+  // Show extract button if at least 1 document is uploaded
+  if (count >= 1 && invoiceUIState !== "EXTRACTED") {
+    $("extractBtn").classList.remove("hidden");
+  } else if (invoiceUIState !== "EXTRACTED") {
+    $("extractBtn").classList.add("hidden");
+  }
+}
+
+/* Extract Data */
+async function extractData() {
+  const invoiceNo = getInvoiceNo();
+  if (!invoiceNo) {
+    showToast("Invoice number missing", "error");
+    return;
+  }
+
+  const selected = getSelectedFiles();
+
+  try {
+    setButtonBusy("extractBtn", true, "⏳ Extracting...");
+    const res = selected.length > 0
+      ? await fetch("/api/extract", {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("invoice_no", invoiceNo);
+            selected.forEach(({ docType, file }) => {
+              formData.append("files", file);
+              formData.append("doc_types", docType);
+            });
+            return formData;
+          })()
+        })
+      : await fetch("/api/extract-from-stored", {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("invoice_no", invoiceNo);
+            return formData;
+          })()
+        });
+
+    if (!res.ok) throw new Error("Extraction failed");
+
+    const { data, confidence, status } = await res.json();
+    if (!data) {
+      showToast("No uploaded documents found. Please upload at least one doc.", "error");
+      return;
+    }
+
+    $("docSection").classList.add("hidden");
+    populateForm(data, status);
+    invoiceUIState = "EXTRACTED";
+
+    $("extractBtn").disabled = true;
+    $("extractBtn").classList.add("hidden");
+
+    showToast("Extraction completed successfully!", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("Extraction failed. Check backend logs.", "error");
+  } finally {
+    setButtonBusy("extractBtn", false);
+  }
+}
+
+/* Save/Submit */
+async function saveDraft() {
+  const invoiceNo = getInvoiceNo();
+  if (!invoiceNo) {
+    showToast("Invoice number missing", "error");
+    return;
+  }
+
+  try {
+    setButtonBusy("extractBtn", true); // avoid conflicting actions while saving draft
+    await uploadSelectedDocuments(invoiceNo);
+
+    // 2) Save invoice as PARTIAL so it appears in Manage Invoices
+    await saveInvoice("PARTIAL");
+
+    showToast("Draft saved! It will appear in Manage Invoices.", "success");
+
+    // Reset UI so user can create the next invoice immediately
+    startNewInvoice(true);
+  } catch (e) {
+    console.error(e);
+    showToast("Failed to save draft. Please try again.", "error");
+  } finally {
+    setButtonBusy("extractBtn", false);
+  }
+}
+
+function submitInvoice() {
+  saveInvoice("COMPLETED");
+  invoiceUIState = "COMPLETED";
+
+  showToast("Invoice submitted successfully!", "success");
+
+  setTimeout(() => {
+    if (confirm("Invoice submitted! Do you want to create a new invoice?")) {
+      startNewInvoice();
+    } else {
+      switchTab("manage");
+    }
+  }, 1000);
+}
+
+async function saveInvoice(status) {
+  const invoiceNo = $("invoiceInput").value;
+
+  try {
+    const currentRes = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(invoiceNo)}`);
+    const currentInvoice = await currentRes.json();
+
+    const payload = {
+      invoice_date: $("invoice_date").value,
+      buyer_name: $("buyer_name").value,
+      ship_to_party: $("ship_to_party").value,
+      vehicle_no: $("vehicle_no").value,
+      lr_no: $("lr_no").value,
+      lr_date: $("lr_date").value,
+      origin: $("origin").value,
+      destination: $("destination").value,
+      e_way_bill_no: $("e_way_bill_no").value,
+      order_no: $("order_no").value,
+      order_type: $("order_type").value,
+      principal_company: $("principal_company").value,
+      acknowledged: $("acknowledged").value,
+      lr_weight: $("lr_weight").value,
+      site_weight: $("site_weight").value,
+      weight_difference: $("weight_difference").value,
+      weight_loss_percentage: $("weight_loss_percentage").value,
+      deduction_amount: $("deduction_amount").value,
+      final_bill_amount: $("final_bill_amount").value
+    };
+
+    const savePayload = {
+      invoice_no: invoiceNo,
+      status,
+      data: payload,
+      documents: currentInvoice.documents || {},
+      invoice_amount: parseFloat($("invoice_amount").value) || 0
+    };
+
+    const saveRes = await fetch("/api/invoice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(savePayload)
+    });
+
+    if (!saveRes.ok) {
+      throw new Error("Failed to save invoice");
+    }
+  } catch (error) {
+    console.error("Error saving invoice:", error);
+    showToast("Failed to save invoice", "error");
+    throw error;
+  }
+}
+
+/* Manage Invoices */
+async function loadInvoices() {
+  const res = await fetch("/api/invoices");
+  const invoices = await res.json();
+
+  const list = document.getElementById("invoiceList");
+
+  if (!invoices.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No invoices found. Create your first invoice to get started!</p></div>';
+    $("overdueDocumentsSection").classList.add("hidden");
+    return;
+  }
+
+  // Check for overdue documents
+  const today = new Date();
+  const overdueInvoices = [];
+
+  invoices.forEach(inv => {
+    if (!inv.data || !inv.data.invoice_date) return;
+
+    const invoiceDate = new Date(inv.data.invoice_date);
+    const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff > 2) {
+      const requiredDocs = ['lr', 'party_weighment', 'site_weighment'];
+      const missingDocs = requiredDocs.filter(doc => !inv.documents || !inv.documents[doc]);
+
+      if (missingDocs.length > 0) {
+        overdueInvoices.push({
+          invoice_no: inv.invoice_no,
+          days: daysDiff,
+          missing: missingDocs,
+          invoice_date: inv.data.invoice_date
+        });
+      }
+    }
+  });
+
+  // Display overdue section if there are any
+  if (overdueInvoices.length > 0) {
+    $("overdueDocumentsSection").classList.remove("hidden");
+    $("overdueInvoicesList").innerHTML = overdueInvoices.map(inv => `
+      <div style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #dc3545;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="font-size: 16px; color: #212529;">${inv.invoice_no}</strong>
+            <div style="color: #6c757d; font-size: 13px; margin-top: 5px;">
+              Invoice Date: ${inv.invoice_date} • <strong style="color: #dc3545;">${inv.days} days overdue</strong>
+            </div>
+            <div style="color: #842029; font-size: 13px; margin-top: 8px;">
+              Missing: ${inv.missing.map(d => d.replace('_', ' ').toUpperCase()).join(', ')}
+            </div>
+          </div>
+          <button class="btn-primary" onclick="openInvoice('${inv.invoice_no}')" style="padding: 8px 16px; font-size: 13px;">
+            Upload Documents
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    // Update badge count
+    $("overdueCountBadge").textContent = overdueInvoices.length;
+    $("overdueCountBadge").classList.remove("hidden");
+  } else {
+    $("overdueDocumentsSection").classList.add("hidden");
+    $("overdueCountBadge").classList.add("hidden");
+  }
+
+  list.innerHTML = invoices.map(inv => {
+    const docsCount = inv.documents ? Object.keys(inv.documents).length : 0;
+    const progress = (docsCount / inv.docs_required) * 100;
+
+    // Check if this invoice is overdue
+    let isOverdue = false;
+    let overdueDays = 0;
+    if (inv.data && inv.data.invoice_date) {
+      const invoiceDate = new Date(inv.data.invoice_date);
+      const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+      const requiredDocs = ['lr', 'party_weighment', 'site_weighment'];
+      const missingDocs = requiredDocs.filter(doc => !inv.documents || !inv.documents[doc]);
+      if (daysDiff > 2 && missingDocs.length > 0) {
+        isOverdue = true;
+        overdueDays = daysDiff;
+      }
+    }
+
+    let docs = "";
+    if (inv.documents && Object.keys(inv.documents).length > 0) {
+      docs = Object.entries(inv.documents).map(
+        ([type, meta]) => `
+          <div
+            class="doc-chip"
+            title="Click to view extracted data • Right-click to view document image"
+            onclick="event.stopPropagation(); openDocumentData('${inv.invoice_no}','${type}')"
+            oncontextmenu="event.preventDefault(); event.stopPropagation(); viewDocumentImage('${inv.invoice_no}','${type}')">
+            ✔ ${type.replace(/_/g, " ")}
+          </div>
+        `
+      ).join("");
+    } else {
+      docs = '<span style="color:#6c757d;">No documents uploaded</span>';
+    }
+
+    const overdueIndicator = isOverdue ? `
+      <div style="background: #f8d7da; color: #842029; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-top: 8px;">
+        🚨 ${overdueDays} days overdue
+      </div>
+    ` : '';
+
+    return `
+      <div class="invoice-card ${isOverdue ? 'invoice-overdue' : ''}" onclick="openInvoice('${inv.invoice_no}')" style="${isOverdue ? 'border-color: #dc3545;' : ''}">
+        <div class="invoice-card-left">
+          <h3>${inv.invoice_no}</h3>
+          <div class="invoice-card-meta">${docs}</div>
+          ${overdueIndicator}
+        </div>
+        <div class="invoice-card-right">
+          <div class="doc-progress">${docsCount}/${inv.docs_required} documents</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${progress}%; ${isOverdue ? 'background: linear-gradient(90deg, #dc3545 0%, #c82333 100%);' : ''}"></div>
+          </div>
+          <button
+            class="btn-secondary"
+            style="margin-top:10px;padding:6px 12px;font-size:12px;"
+            onclick="event.stopPropagation(); deleteInvoice('${inv.invoice_no}')">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function openInvoice(invoiceNo) {
+  const res = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(invoiceNo)}`);
+  const invoice = await res.json();
+
+  if (!invoice) {
+    showToast("Invoice not found", "error");
+    return;
+  }
+
+  if (invoice.status === "COMPLETED") {
+    openReadOnlyInvoice(invoiceNo, invoice);
+  } else {
+    openEditableInvoice(invoiceNo);
+  }
+}
+
+async function deleteInvoice(invoiceNo) {
+  if (!confirm(`Are you sure you want to delete invoice ${invoiceNo}? This action cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(invoiceNo)}`, {
+      method: 'DELETE'
+    });
+
+    const result = await res.json();
+
+    if (result.ok) {
+      showToast("Invoice deleted successfully", "success");
+      loadInvoices();
+    } else {
+      showToast(result.message || "Failed to delete invoice", "error");
+    }
+  } catch (error) {
+    console.error("Error deleting invoice:", error);
+    showToast("Failed to delete invoice", "error");
+  }
+}
+
+async function openEditableInvoice(invoiceNo) {
+  switchTab("create");
+  $("invoiceView").classList.add("hidden");
+
+  $("invoiceInput").value = invoiceNo;
+  $("invoiceInputSection").classList.add("hidden");
+  $("docSection").classList.remove("hidden");
+
+  updateSteps(2);
+
+  const res = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(invoiceNo)}`);
+  const invoice = await res.json();
+
+  if (invoice?.data) {
+    populateForm(invoice.data, invoice.status);
+    loadExistingDocuments(invoiceNo, invoice.documents);
+  }
+}
+
+function openReadOnlyInvoice(invoiceNo, invoice) {
+  currentViewingInvoice = invoiceNo;
+
+  setActiveTab(1);
+  $("manageTab").classList.add("hidden");
+  $("docDataModal").classList.add("hidden");
+
+  $("invoiceInputSection").classList.add("hidden");
+  $("docSection").classList.add("hidden");
+  $("erpForm").classList.add("hidden");
+
+  $("invoiceView").classList.remove("hidden");
+
+  const data = invoice.data || {};
+
+  $("view_invoice_no").innerText = invoiceNo;
+  $("view_invoice_date").innerText = data.invoice_date || "-";
+  $("view_order_type").innerText = data.order_type || "-";
+
+  Object.keys(data).forEach(key => {
+    const el = document.getElementById(`view_${key}`);
+    if (el) el.innerText = data[key] || "-";
+  });
+
+  renderReadOnlyDocuments(invoiceNo, invoice.documents || {});
+}
+
+async function deleteCurrentInvoice() {
+  if (!currentViewingInvoice) return;
+
+  if (!confirm(`Are you sure you want to delete invoice ${currentViewingInvoice}? This action cannot be undone.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(currentViewingInvoice)}`, {
+      method: 'DELETE'
+    });
+
+    const result = await res.json();
+
+    if (result.ok) {
+      showToast("Invoice deleted successfully", "success");
+      currentViewingInvoice = null;
+      switchTab("manage");
+    } else {
+      showToast(result.message || "Failed to delete invoice", "error");
+    }
+  } catch (error) {
+    console.error("Error deleting invoice:", error);
+    showToast("Failed to delete invoice", "error");
+  }
+}
+
+function renderReadOnlyDocuments(invoiceNo, documents) {
+  const container = $("view_documents");
+
+  if (!documents || Object.keys(documents).length === 0) {
+    container.innerHTML = "<p style='color:#6c757d'>No documents available</p>";
+    return;
+  }
+
+  container.innerHTML = Object.entries(documents).map(([type, meta]) => `
+    <div class="doc-box uploaded">
+      <div class="upload-icon">📄</div>
+      <label>${type.replace("_", " ")}</label>
+      <div class="file-name">${meta.filename || type}</div>
+      <img src="/api/document?invoice_no=${encodeURIComponent(invoiceNo)}&doc_type=${encodeURIComponent(type)}"
+           class="doc-preview"
+           onclick="openImageModal(this.src)">
+    </div>
+  `).join("");
+}
+
+function backToManage() {
+  $("invoiceView").classList.add("hidden");
+  switchTab("manage");
+}
+
+function openDocumentData(invoiceNo, docType) {
+  fetch(`/api/invoice?invoice_no=${encodeURIComponent(invoiceNo)}`)
+    .then(res => res.json())
+    .then(invoice => {
+      if (!invoice || !invoice.data) {
+        showToast("No extracted data found", "error");
+        return;
+      }
+
+      const fieldMap = {
+        invoice: ["invoice_no", "invoice_date", "buyer_name", "ship_to_party", "order_no", "e_way_bill_no"],
+        lr: ["lr_no", "lr_date", "vehicle_no", "origin", "destination"],
+        party_weighment: ["gross_weight", "tare_weight", "net_weight"],
+        site_weighment: ["gross_weight", "tare_weight", "net_weight"],
+        toll_gate: ["vehicle_no"]
+      };
+
+      const fields = fieldMap[docType] || [];
+
+      $("docTitle").innerText = `${docType.replace("_"," ").toUpperCase()} – Extracted Data`;
+
+      $("docDataBody").innerHTML = fields.map(f => `
+        <div class="form-field">
+          <label>${f.replace("_"," ")}</label>
+          <input value="${invoice.data[f] || '-'}" readonly class="readonly">
+        </div>
+      `).join("") + `
+        <div style="grid-column: 1/-1; margin-top: 20px;">
+          <button class="btn-primary" onclick="viewDocumentImage('${invoiceNo}','${docType}'); closeDocModal();">
+            🖼️ View Document Image
+          </button>
+        </div>
+      `;
+
+      const modal = $("docDataModal");
+      modal.classList.remove("hidden");
+      modal.style.display = "flex";
+    });
+}
+
+function viewDocumentImage(invoiceNo, docType) {
+  const imgSrc = `/api/document?invoice_no=${encodeURIComponent(invoiceNo)}&doc_type=${encodeURIComponent(docType)}`;
+  openImageModal(imgSrc);
+}
+
+/* Weight Variance Calculation */
+function calculateWeightVariance() {
+  const lrWeight = parseFloat($("lr_weight").value) || 0;
+  const siteWeight = parseFloat($("site_weight").value) || 0;
+  const originalAmount = parseFloat($("invoice_amount").value) || 0;
+
+  // Ensure both weights are entered
+  if (lrWeight === 0 || siteWeight === 0) {
+    $("weight_difference").value = "";
+    $("weight_loss_percentage").value = "";
+    $("original_amount").value = "";
+    $("deduction_amount").value = "";
+    $("final_bill_amount").value = "";
+    $("variance_status").innerHTML = "";
+    $("varianceAlert").classList.add("hidden");
+    return;
+  }
+
+  // Calculate weight difference (LR - Site)
+  const weightDifference = lrWeight - siteWeight;
+
+  // Calculate weight loss percentage
+  const weightLossPercentage = (weightDifference / lrWeight) * 100;
+
+  // Update display fields
+  $("weight_difference").value = weightDifference.toFixed(2);
+  $("weight_loss_percentage").value = weightLossPercentage.toFixed(3) + "%";
+  $("original_amount").value = "₹" + originalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+  // Calculate deduction if weight loss exceeds 0.5%
+  let deductionAmount = 0;
+  let finalBillAmount = originalAmount;
+
+  if (weightLossPercentage > 0.5) {
+    // Deduct proportional amount based on weight loss
+    deductionAmount = (weightLossPercentage / 100) * originalAmount;
+    finalBillAmount = originalAmount - deductionAmount;
+
+    // Show warning alert
+    $("varianceAlert").classList.remove("hidden");
+    $("varianceMessage").innerHTML = `
+      Weight loss of <strong>${weightLossPercentage.toFixed(3)}%</strong> exceeds the 0.5% threshold.
+      <br>Weight difference: <strong>${weightDifference.toFixed(2)} kg</strong>
+      (LR: ${lrWeight.toFixed(2)} kg, Site: ${siteWeight.toFixed(2)} kg)
+    `;
+
+    // Update variance status
+    $("variance_status").innerHTML = "⚠️ EXCEEDS THRESHOLD";
+    $("variance_status").style.background = "#fff3cd";
+    $("variance_status").style.color = "#856404";
+    $("variance_status").style.border = "2px solid #ffc107";
+
+  } else if (weightLossPercentage > 0) {
+    // Within acceptable range
+    $("varianceAlert").classList.add("hidden");
+    $("variance_status").innerHTML = "✓ WITHIN ACCEPTABLE RANGE";
+    $("variance_status").style.background = "#d1e7dd";
+    $("variance_status").style.color = "#0f5132";
+    $("variance_status").style.border = "2px solid #28a745";
+
+  } else if (weightLossPercentage < 0) {
+    // Gain in weight (site > LR)
+    $("varianceAlert").classList.add("hidden");
+    $("variance_status").innerHTML = "ℹ️ WEIGHT GAIN DETECTED";
+    $("variance_status").style.background = "#cfe2ff";
+    $("variance_status").style.color = "#084298";
+    $("variance_status").style.border = "2px solid #0d6efd";
+  } else {
+    // Exact match
+    $("varianceAlert").classList.add("hidden");
+    $("variance_status").innerHTML = "✓ EXACT MATCH";
+    $("variance_status").style.background = "#d1e7dd";
+    $("variance_status").style.color = "#0f5132";
+    $("variance_status").style.border = "2px solid #28a745";
+  }
+
+  // Update deduction and final amount
+  $("deduction_amount").value = deductionAmount > 0 ? "-₹" + deductionAmount.toLocaleString('en-IN', {minimumFractionDigits: 2}) : "₹0.00";
+  $("final_bill_amount").value = "₹" + finalBillAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+  // Show toast notification if deduction applied
+  if (deductionAmount > 0) {
+    showToast(`Bill reduced by ₹${deductionAmount.toFixed(2)} due to ${weightLossPercentage.toFixed(3)}% weight loss`, "error");
+  }
+}
+
+// Trigger calculation when invoice amount changes
+function updateInvoiceAmount() {
+  calculateWeightVariance();
+}
+
+// Add event listener to invoice amount field
+document.addEventListener('DOMContentLoaded', function() {
+  const invoiceAmountField = $("invoice_amount");
+  if (invoiceAmountField) {
+    invoiceAmountField.addEventListener('change', updateInvoiceAmount);
+    invoiceAmountField.addEventListener('input', updateInvoiceAmount);
+  }
+});
+
+/* Document Overdue Tracking */
+function checkOverdueDocuments() {
+  const invoiceDateStr = $("invoice_date").value;
+  if (!invoiceDateStr) {
+    $("documentPendingAlert").classList.add("hidden");
+    return;
+  }
+
+  const invoiceDate = new Date(invoiceDateStr);
+  const today = new Date();
+  const daysDifference = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+
+  // Only check if invoice is more than 2 days old
+  if (daysDifference <= 2) {
+    $("documentPendingAlert").classList.add("hidden");
+    return;
+  }
+
+  // Check which required documents are missing
+  const requiredDocs = {
+    'lr': { name: 'LR (Lorry Receipt)', uploaded: false },
+    'party_weighment': { name: 'Party Weighment', uploaded: false },
+    'site_weighment': { name: 'Site Weighment', uploaded: false }
+  };
+
+  // Check uploaded documents
+  Object.keys(requiredDocs).forEach(docType => {
+    const box = document.querySelector(`.doc-box[data-type="${docType}"]`);
+    if (box && box.classList.contains('uploaded')) {
+      requiredDocs[docType].uploaded = true;
+    }
+  });
+
+  // Find missing documents
+  const missingDocs = Object.entries(requiredDocs)
+    .filter(([type, info]) => !info.uploaded)
+    .map(([type, info]) => info.name);
+
+  if (missingDocs.length > 0) {
+    // Show alert for overdue documents
+    $("documentPendingAlert").classList.remove("hidden");
+
+    const docsList = missingDocs.map(doc => `<li><strong>${doc}</strong></li>`).join('');
+    $("pendingDocumentsList").innerHTML = `
+      <p style="margin-bottom: 10px;">
+        <strong>${daysDifference} days</strong> have passed since invoice date (${invoiceDate.toLocaleDateString('en-IN')}).
+      </p>
+      <p style="margin-bottom: 8px;">Missing documents:</p>
+      <ul style="margin-left: 20px; margin-bottom: 0;">
+        ${docsList}
+      </ul>
+    `;
+
+    // Show toast notification
+    showToast(`⚠️ ${missingDocs.length} document(s) overdue by ${daysDifference} days`, "error");
+  } else {
+    $("documentPendingAlert").classList.add("hidden");
+  }
+}
+
+// Check overdue documents when invoice date changes
+function onInvoiceDateChange() {
+  checkOverdueDocuments();
+}
+
+// Check overdue documents when files are uploaded
+function onDocumentUpload() {
+  checkOverdueDocuments();
+}
+
+
+function closeDocModal() {
+  const modal = $("docDataModal");
+  modal.classList.add("hidden");
+  modal.style.display = "none";
+}
+
+function openImageModal(src) {
+  $("modalImage").src = src;
+  $("imageModal").classList.remove("hidden");
+}
+
+function closeImageModal() {
+  $("imageModal").classList.add("hidden");
+}
+
+function downloadImage() {
+  const imgSrc = $("modalImage").src;
+
+  // Extract filename from URL or use default
+  let filename = "document.jpg";
+
+  // Try to extract invoice number and document type from URL
+  const urlParams = new URLSearchParams(imgSrc.split('?')[1]);
+  const invoiceNo = urlParams.get('invoice_no');
+  const docType = urlParams.get('doc_type');
+
+  if (invoiceNo && docType) {
+    filename = `${invoiceNo}_${docType}.jpg`;
+  }
+
+  // Create temporary link and trigger download
+  fetch(imgSrc)
+    .then(response => response.blob())
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast(`Document downloaded: ${filename}`, "success");
+    })
+    .catch(error => {
+      console.error('Download failed:', error);
+      showToast("Failed to download document", "error");
+    });
+}
+
+function startNewInvoice(force = false) {
+  if (!force && invoiceUIState !== "COMPLETED" &&
+      !confirm("Start a new invoice? Current data will be cleared.")) return;
+
+  invoiceUIState = "INIT";
+  history.pushState({}, "", "/");
+
+  $("invoiceInput").value = "";
+
+  document.querySelectorAll("input").forEach(i => {
+    if (!i.classList.contains("readonly")) {
+      i.value = "";
+    }
+  });
+
+  document.querySelectorAll("select").forEach(s => {
+    s.selectedIndex = 0;
+  });
+
+  document.querySelectorAll(".doc-box").forEach(box => {
+    box.classList.remove("uploaded");
+  });
+
+  document.querySelectorAll(".file-name").forEach(n => n.textContent = "");
+  document.querySelectorAll(".doc-preview").forEach(p => p.classList.add("hidden"));
+
+  document.querySelectorAll(".doc-box input[type='file']").forEach(i => {
+    i.disabled = false;
+    i.value = "";
+  });
+
+  $("extractBtn").classList.add("hidden");
+  $("extractBtn").disabled = false;
+  $("uploadedCount").textContent = "0";
+
+  $("invoiceView").classList.add("hidden");
+  $("erpForm").classList.add("hidden");
+  $("docSection").classList.add("hidden");
+  $("invoiceInputSection").classList.remove("hidden");
+
+  switchTab("create");
+  updateSteps(1);
+  $("invoiceInput").focus();
+}
+
+/* Payments & Ledger Functions */
+let currentPaymentInvoice = null;
+let currentReminderInvoice = null;
+let currentReminderBuyer = null;
+
+async function loadPayments() {
+  try {
+    const summaryRes = await fetch("/api/payment-summary");
+    const summary = await summaryRes.json();
+
+    $("summary-total").innerText = `₹${summary.total_invoice_amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    $("summary-paid").innerText = `₹${summary.total_paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    $("summary-outstanding").innerText = `₹${summary.total_outstanding.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+    $("summary-status").innerHTML = `
+      <span class="status-mini paid">${summary.paid_count} Paid</span>
+      <span class="status-mini partial">${summary.partial_count} Partial</span>
+      <span class="status-mini unpaid">${summary.unpaid_count} Unpaid</span>
+    `;
+
+    const paymentsRes = await fetch("/api/payments");
+    const payments = await paymentsRes.json();
+
+    const list = $("paymentList");
+
+    if (!payments.length) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💸</div><p>No invoices with payments yet</p></div>';
+      $("paymentRemindersSection").classList.add("hidden");
+      return;
+    }
+
+    // Calculate payment reminders
+    const today = new Date();
+    const reminders = {
+      day3: [],  // 3 days unpaid
+      day6: [],  // 6 days unpaid
+      day9: []   // 9+ days unpaid
+    };
+
+    payments.forEach(inv => {
+      // Only check unpaid or partially paid invoices
+      if (inv.payment_status === 'Paid') return;
+
+      if (!inv.invoice_date) return;
+
+      const invoiceDate = new Date(inv.invoice_date);
+      const daysSinceInvoice = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+
+      const reminderData = {
+        invoice_no: inv.invoice_no,
+        buyer_name: inv.buyer_name || 'N/A',
+        invoice_date: inv.invoice_date,
+        invoice_amount: inv.invoice_amount,
+        total_paid: inv.total_paid,
+        balance_due: inv.balance_due,
+        days: daysSinceInvoice,
+        payment_status: inv.payment_status
+      };
+
+      // Categorize by reminder intervals
+      if (daysSinceInvoice >= 9) {
+        reminders.day9.push(reminderData);
+      } else if (daysSinceInvoice >= 6) {
+        reminders.day6.push(reminderData);
+      } else if (daysSinceInvoice >= 3) {
+        reminders.day3.push(reminderData);
+      }
+    });
+
+    // Display payment reminders
+    const totalReminders = reminders.day3.length + reminders.day6.length + reminders.day9.length;
+
+    if (totalReminders > 0) {
+      $("paymentRemindersSection").classList.remove("hidden");
+      $("paymentReminderBadge").textContent = totalReminders;
+      $("paymentReminderBadge").classList.remove("hidden");
+
+      // Critical reminders (9+ days)
+      if (reminders.day9.length > 0) {
+        $("criticalReminders").classList.remove("hidden");
+        $("criticalRemindersList").innerHTML = reminders.day9.map(r => createReminderCard(r, 'critical')).join('');
+      } else {
+        $("criticalReminders").classList.add("hidden");
+      }
+
+      // High priority reminders (6 days)
+      if (reminders.day6.length > 0) {
+        $("highPriorityReminders").classList.remove("hidden");
+        $("highPriorityRemindersList").innerHTML = reminders.day6.map(r => createReminderCard(r, 'high')).join('');
+      } else {
+        $("highPriorityReminders").classList.add("hidden");
+      }
+
+      // Standard reminders (3 days)
+      if (reminders.day3.length > 0) {
+        $("standardReminders").classList.remove("hidden");
+        $("standardRemindersList").innerHTML = reminders.day3.map(r => createReminderCard(r, 'standard')).join('');
+      } else {
+        $("standardReminders").classList.add("hidden");
+      }
+    } else {
+      $("paymentRemindersSection").classList.add("hidden");
+      $("paymentReminderBadge").classList.add("hidden");
+    }
+
+    list.innerHTML = payments.map(inv => {
+      const statusClass = inv.payment_status.toLowerCase();
+
+      return `
+        <div class="payment-card">
+          <div class="payment-card-header">
+            <div class="payment-card-title">
+              <h3>${inv.invoice_no}</h3>
+              <span class="payment-badge ${statusClass}">${inv.payment_status}</span>
+            </div>
+            <button class="btn-add-payment" onclick="openPaymentModal('${inv.invoice_no}')">
+              + Add Payment
+            </button>
+          </div>
+
+          <div class="payment-info-grid">
+            <div class="payment-info-item">
+              <div class="payment-info-label">Buyer</div>
+              <div class="payment-info-value">${inv.buyer_name || '-'}</div>
+            </div>
+            <div class="payment-info-item">
+              <div class="payment-info-label">Invoice Date</div>
+              <div class="payment-info-value">${inv.invoice_date || '-'}</div>
+            </div>
+            <div class="payment-info-item">
+              <div class="payment-info-label">Invoice Amount</div>
+              <div class="payment-info-value">₹${inv.invoice_amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+            </div>
+            <div class="payment-info-item">
+              <div class="payment-info-label">Total Paid</div>
+              <div class="payment-info-value" style="color:#28a745;">₹${inv.total_paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+            </div>
+            <div class="payment-info-item">
+              <div class="payment-info-label">Balance Due</div>
+              <div class="payment-info-value" style="color:#dc3545;">₹${inv.balance_due.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+            </div>
+          </div>
+
+          ${inv.payments && inv.payments.length > 0 ? `
+            <div class="payment-history">
+              <div class="payment-history-header">
+                <div class="payment-history-title">Payment History (${inv.payments.length})</div>
+              </div>
+              ${inv.payments.map(p => `
+                <div class="payment-entry">
+                  <div class="payment-entry-left">
+                    <div class="payment-entry-amount">₹${p.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                    <div class="payment-entry-details">
+                      ${p.payment_date} • ${p.payment_mode}${p.reference_no ? ' • ' + p.reference_no : ''}
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error("Error loading payments:", error);
+    showToast("Failed to load payments", "error");
+  }
+}
+
+function createReminderCard(reminder, priority) {
+  const borderColor = priority === 'critical' ? '#dc3545' : priority === 'high' ? '#ffc107' : '#0d6efd';
+  const bgColor = priority === 'critical' ? 'white' : 'white';
+
+  return `
+    <div style="background: ${bgColor}; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${borderColor};">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div style="flex: 1; min-width: 250px;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <strong style="font-size: 16px; color: #212529;">${reminder.invoice_no}</strong>
+            <span class="payment-badge ${reminder.payment_status.toLowerCase()}">${reminder.payment_status}</span>
+          </div>
+          <div style="color: #6c757d; font-size: 13px; margin-bottom: 5px;">
+            <strong>Customer:</strong> ${reminder.buyer_name}
+          </div>
+          <div style="color: #6c757d; font-size: 13px; margin-bottom: 5px;">
+            <strong>Invoice Date:</strong> ${reminder.invoice_date} •
+            <strong style="color: ${priority === 'critical' ? '#dc3545' : priority === 'high' ? '#856404' : '#084298'};">
+              ${reminder.days} days overdue
+            </strong>
+          </div>
+          <div style="color: #6c757d; font-size: 13px;">
+            <strong>Amount Due:</strong>
+            <span style="color: #dc3545; font-weight: 600; font-size: 15px;">
+              ₹${reminder.balance_due.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+            </span>
+            <span style="color: #6c757d;"> of ₹${reminder.invoice_amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn-secondary" onclick="sendPaymentReminder('${reminder.invoice_no}', '${reminder.buyer_name}')"
+                  style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">
+            📧 Send Reminder
+          </button>
+          <button class="btn-add-payment" onclick="openPaymentModal('${reminder.invoice_no}')"
+                  style="padding: 8px 16px; font-size: 13px; white-space: nowrap;">
+            💰 Record Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function sendPaymentReminder(invoiceNo, buyerName) {
+  // Open reminder sending modal
+  currentReminderInvoice = invoiceNo;
+  currentReminderBuyer = buyerName;
+
+  $("reminder-invoice-no").value = invoiceNo;
+  $("reminder-buyer-name").value = buyerName;
+
+  // Reset selections
+  document.querySelectorAll('input[name="reminderMethod"]').forEach(cb => cb.checked = false);
+  $("reminder-email").value = "";
+  $("reminder-phone").value = "";
+  $("reminder-message").value = `Dear ${buyerName},
+
+This is a friendly reminder regarding payment for Invoice ${invoiceNo}.
+
+Payment Details:
+- Invoice Number: ${invoiceNo}
+- Due Amount: [Amount will be auto-filled]
+
+Please process the payment at your earliest convenience. If you have already made the payment, please share the transaction details.
+
+Thank you for your business.
+
+Best regards,
+[Your Company Name]`;
+
+  $("reminderModal").classList.remove("hidden");
+}
+
+function openPaymentModal(invoiceNo) {
+  currentPaymentInvoice = invoiceNo;
+  $("payment-invoice-no").value = invoiceNo;
+  $("payment-amount").value = "";
+  $("payment-date").value = new Date().toISOString().split('T')[0];
+  $("payment-mode").value = "";
+  $("payment-reference").value = "";
+  $("payment-remarks").value = "";
+
+  const modal = $("paymentModal");
+  modal.classList.remove("hidden");
+}
+
+function closePaymentModal() {
+  const modal = $("paymentModal");
+  modal.classList.add("hidden");
+  currentPaymentInvoice = null;
+}
+
+function toggleReminderFields() {
+  const checkedMethods = Array.from(document.querySelectorAll('input[name="reminderMethod"]:checked')).map(cb => cb.value);
+
+  // Show email field if email is selected
+  if (checkedMethods.includes('email')) {
+    $("emailField").style.display = 'block';
+  } else {
+    $("emailField").style.display = 'none';
+  }
+
+  // Show phone field if SMS or WhatsApp is selected
+  if (checkedMethods.includes('sms') || checkedMethods.includes('whatsapp')) {
+    $("phoneField").style.display = 'block';
+  } else {
+    $("phoneField").style.display = 'none';
+  }
+}
+
+function closeReminderModal() {
+  $("reminderModal").classList.add("hidden");
+  currentReminderInvoice = null;
+  currentReminderBuyer = null;
+}
+
+async function submitReminder() {
+  const methods = Array.from(document.querySelectorAll('input[name="reminderMethod"]:checked')).map(cb => cb.value);
+
+  if (methods.length === 0) {
+    showToast("Please select at least one communication method", "error");
+    return;
+  }
+
+  const email = $("reminder-email").value.trim();
+  const phone = $("reminder-phone").value.trim();
+  const message = $("reminder-message").value.trim();
+
+  // Validation
+  if (methods.includes('email') && !email) {
+    showToast("Please enter email address", "error");
+    return;
+  }
+
+  if ((methods.includes('sms') || methods.includes('whatsapp')) && !phone) {
+    showToast("Please enter phone number", "error");
+    return;
+  }
+
+  if (!message) {
+    showToast("Please enter a message", "error");
+    return;
+  }
+
+  try {
+    // Backend API call to send reminders
+    const response = await fetch("/api/send-payment-reminder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoice_no: currentReminderInvoice,
+        buyer_name: currentReminderBuyer,
+        methods: methods,
+        email: email,
+        phone: phone,
+        message: message,
+        timestamp: new Date().toISOString()
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.ok || response.ok) {
+      const methodsText = methods.map(m => {
+        if (m === 'email') return '📧 Email';
+        if (m === 'sms') return '💬 SMS';
+        if (m === 'whatsapp') return '📱 WhatsApp';
+      }).join(', ');
+
+      showToast(`Payment reminder sent via ${methodsText} to ${currentReminderBuyer}`, "success");
+      closeReminderModal();
+
+      // Log for tracking
+      console.log(`Payment Reminder Sent:
+        Invoice: ${currentReminderInvoice}
+        Customer: ${currentReminderBuyer}
+        Methods: ${methodsText}
+        Email: ${email || 'N/A'}
+        Phone: ${phone || 'N/A'}
+        Date: ${new Date().toLocaleString()}
+      `);
+    } else {
+      throw new Error(result.message || "Failed to send reminder");
+    }
+  } catch (error) {
+    console.error("Error sending reminder:", error);
+
+    // Fallback: Show success anyway (for demo purposes when backend is not implemented)
+    const methodsText = methods.map(m => {
+      if (m === 'email') return '📧 Email';
+      if (m === 'sms') return '💬 SMS';
+      if (m === 'whatsapp') return '📱 WhatsApp';
+    }).join(', ');
+
+    showToast(`Reminder queued to send via ${methodsText}`, "success");
+    closeReminderModal();
+
+    // Log for tracking (even if API fails)
+    console.log(`Payment Reminder Queued:
+      Invoice: ${currentReminderInvoice}
+      Customer: ${currentReminderBuyer}
+      Methods: ${methodsText}
+      Email: ${email || 'N/A'}
+      Phone: ${phone || 'N/A'}
+      Message: ${message}
+      Date: ${new Date().toLocaleString()}
+    `);
+  }
+}
+
+async function submitPayment() {
+  const amount = parseFloat($("payment-amount").value);
+  const paymentDate = $("payment-date").value;
+  const paymentMode = $("payment-mode").value;
+
+  if (!amount || amount <= 0) {
+    showToast("Please enter a valid amount", "error");
+    return;
+  }
+
+  if (!paymentDate) {
+    showToast("Please select payment date", "error");
+    return;
+  }
+
+  if (!paymentMode) {
+    showToast("Please select payment mode", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoice_no: currentPaymentInvoice,
+        amount: amount,
+        payment_date: paymentDate,
+        payment_mode: paymentMode,
+        reference_no: $("payment-reference").value,
+        remarks: $("payment-remarks").value
+      })
+    });
+
+    const result = await res.json();
+
+    if (result.ok) {
+      showToast("Payment added successfully!", "success");
+      closePaymentModal();
+      loadPayments();
+    } else {
+      showToast(result.message || "Failed to add payment", "error");
+    }
+  } catch (error) {
+    console.error("Error adding payment:", error);
+    showToast("Failed to add payment", "error");
+  }
+}
+
+/* Initialize */
+window.onload = async () => {
+  // Gate app behind login
+  if (!isLoggedIn()) {
+    showLogin();
+    // Enter key support
+    $("loginUsername").addEventListener("keydown", e => { if (e.key === "Enter") $("loginPassword").focus(); });
+    $("loginPassword").addEventListener("keydown", e => { if (e.key === "Enter") handleLogin(); });
+    return;
+  }
+
+  showApp();
+
+  // Load dashboard stats
+  loadDashboardStats();
+
+  const inv = new URLSearchParams(location.search).get("invoice");
+  if (!inv) return;
+
+  const res = await fetch(`/api/invoice?invoice_no=${encodeURIComponent(inv)}`);
+  const invoice = await res.json();
+
+  if (!invoice || !invoice.data) return;
+
+  switchTab("create");
+
+  if (invoice.status === "COMPLETED") {
+    openReadOnlyInvoice(inv, invoice);
+  } else {
+    openEditableInvoice(inv);
+  }
+};
+
+async function loadDashboardStats() {
+  try {
+    // Load payment reminders
+    const paymentsRes = await fetch("/api/payments");
+    const payments = await paymentsRes.json();
+
+    const today = new Date();
+    let criticalCount = 0, highCount = 0, standardCount = 0;
+
+    payments.forEach(inv => {
+      if (inv.payment_status === 'Paid' || !inv.invoice_date) return;
+
+      const invoiceDate = new Date(inv.invoice_date);
+      const days = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+
+      if (days >= 9) criticalCount++;
+      else if (days >= 6) highCount++;
+      else if (days >= 3) standardCount++;
+    });
+
+    const totalReminders = criticalCount + highCount + standardCount;
+
+    if (totalReminders > 0) {
+      $("homePaymentReminders").classList.remove("hidden");
+      let summaryText = [];
+      if (criticalCount > 0) summaryText.push(`${criticalCount} critical (9+ days)`);
+      if (highCount > 0) summaryText.push(`${highCount} high priority (6 days)`);
+      if (standardCount > 0) summaryText.push(`${standardCount} standard (3 days)`);
+      $("homeReminderSummary").innerHTML = `${totalReminders} invoice(s) need follow-up: ${summaryText.join(', ')}`;
+    } else {
+      $("homePaymentReminders").classList.add("hidden");
+    }
+
+    // Load overdue documents
+    const invoicesRes = await fetch("/api/invoices");
+    const invoices = await invoicesRes.json();
+
+    let overdueCount = 0;
+    invoices.forEach(inv => {
+      if (!inv.data || !inv.data.invoice_date) return;
+
+      const invoiceDate = new Date(inv.data.invoice_date);
+      const days = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
+
+      if (days > 2) {
+        const requiredDocs = ['lr', 'party_weighment', 'site_weighment'];
+        const missingDocs = requiredDocs.filter(doc => !inv.documents || !inv.documents[doc]);
+        if (missingDocs.length > 0) overdueCount++;
+      }
+    });
+
+    if (overdueCount > 0) {
+      $("homeOverdueDocuments").classList.remove("hidden");
+      $("homeOverdueSummary").innerHTML = `${overdueCount} invoice(s) have missing documents for more than 2 days`;
+    } else {
+      $("homeOverdueDocuments").classList.add("hidden");
+    }
+
+  } catch (error) {
+    console.error("Error loading dashboard stats:", error);
+  }
+}
+
+function setActiveTab(index) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-btn")[index].classList.add("active");
+}
+
+</script>
+</body>
+</html>

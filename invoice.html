@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cement B2B Invoice System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const CementB2BSystem = () => {
+            const [user, setUser] = useState({ role: 'admin', name: 'Admin User' });
+            const [invoices, setInvoices] = useState([]);
+            const [currentInvoice, setCurrentInvoice] = useState(null);
+            const [view, setView] = useState('create');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [statusFilter, setStatusFilter] = useState('ALL');
+            const [showConfirm, setShowConfirm] = useState(null);
+            const [ocrData, setOcrData] = useState({});
+            const [payments, setPayments] = useState([]);
+            const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const loadData = () => {
+                try {
+                    const invoicesData = localStorage.getItem('invoices');
+                    const paymentsData = localStorage.getItem('payments');
+                    const ocrDataStored = localStorage.getItem('ocr-data');
+                    
+                    if (invoicesData) setInvoices(JSON.parse(invoicesData));
+                    if (paymentsData) setPayments(JSON.parse(paymentsData));
+                    if (ocrDataStored) setOcrData(JSON.parse(ocrDataStored));
+                } catch (error) {
+                    console.log('No existing data found');
+                }
+            };
+
+            const saveData = (invoicesData, paymentsData, ocrDataObj) => {
+                try {
+                    localStorage.setItem('invoices', JSON.stringify(invoicesData || invoices));
+                    localStorage.setItem('payments', JSON.stringify(paymentsData || payments));
+                    localStorage.setItem('ocr-data', JSON.stringify(ocrDataObj || ocrData));
+                } catch (error) {
+                    console.error('Error saving data:', error);
+                }
+            };
+
+            const getInvoiceStatus = (invoice) => {
+                const docs = invoice.documents;
+                const uploaded = Object.values(docs).filter(d => d !== null).length;
+                if (uploaded === 0) return 'OPEN';
+                if (uploaded === 5) return 'COMPLETED';
+                return 'PARTIAL';
+            };
+
+            const createInvoice = (invoiceNo) => {
+                if (!invoiceNo.trim()) {
+                    alert('Invoice number is required');
+                    return;
+                }
+
+                if (invoices.some(inv => inv.invoiceNo === invoiceNo)) {
+                    alert('Invoice number already exists!');
+                    return;
+                }
+
+                const newInvoice = {
+                    invoiceNo,
+                    createdDate: new Date().toISOString(),
+                    documents: {
+                        invoice: null,
+                        lr: null,
+                        weighment1: null,
+                        weighment2: null,
+                        tollgate: null
+                    },
+                    totalAmount: 0,
+                    paidAmount: 0,
+                    balanceAmount: 0,
+                    paymentStatus: 'UNPAID'
+                };
+
+                const updated = [...invoices, newInvoice];
+                setInvoices(updated);
+                setCurrentInvoice(newInvoice);
+                saveData(updated, payments, ocrData);
+                alert('Invoice created successfully!');
+            };
+
+            const uploadDocument = (invoiceNo, docType, file) => {
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64 = e.target.result;
+                    
+                    const updated = invoices.map(inv => {
+                        if (inv.invoiceNo === invoiceNo) {
+                            const existingDoc = inv.documents[docType];
+                            if (existingDoc && !showConfirm) {
+                                setShowConfirm({ invoiceNo, docType, file, base64 });
+                                return inv;
+                            }
+                            
+                            inv.documents[docType] = {
+                                name: file.name,
+                                type: file.type,
+                                data: base64,
+                                uploadedAt: new Date().toISOString()
+                            };
+
+                            simulateOCR(invoiceNo, docType, base64);
+                        }
+                        return inv;
+                    });
+
+                    setInvoices(updated);
+                    setCurrentInvoice(updated.find(inv => inv.invoiceNo === invoiceNo));
+                    saveData(updated, payments, ocrData);
+                    setShowConfirm(null);
+                    alert('Document uploaded successfully!');
+                };
+                reader.readAsDataURL(file);
+            };
+
+const simulateOCR = async (invoiceNo, docType, file) => {
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    console.log("Sending file to backend...");
+
+    try {
+        const res = await fetch("http://127.0.0.1:8000/ocr", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        console.log("OCR RESPONSE:", data);
+
+        const extracted = data.extracted_fields;
+
+        const key = `${invoiceNo}-${docType}`;
+
+        const updated = {
+            ...ocrData,
+            [key]: extracted
+        };
+
+        setOcrData(updated);
+        saveData(invoices, payments, updated);
+
+    } catch (err) {
+        console.error("OCR FAILED:", err);
+        alert("OCR failed");
+    }
+};
+
+
+
+
+            const checkWeighmentVariance = (invoiceNo) => {
+                const w1Data = ocrData[`${invoiceNo}-weighment1`];
+                const w2Data = ocrData[`${invoiceNo}-weighment2`];
+                
+                if (w1Data && w2Data && w1Data.netWeight && w2Data.netWeight) {
+                    const diff = Math.abs(w1Data.netWeight - w2Data.netWeight);
+                    const percentage = (diff / w1Data.netWeight) * 100;
+                    
+                    return {
+                        hasVariance: percentage > 0.5,
+                        percentage: percentage.toFixed(2),
+                        w1: w1Data.netWeight,
+                        w2: w2Data.netWeight
+                    };
+                }
+                return null;
+            };
+
+            const addPayment = (paymentData) => {
+                if (user.role === 'user') {
+                    alert('Access Denied: Only Admin and Super Admin can manage payments');
+                    return;
+                }
+
+                const newPayment = {
+                    id: Date.now().toString(),
+                    invoiceNo: currentInvoice.invoiceNo,
+                    ...paymentData,
+                    createdAt: new Date().toISOString()
+                };
+
+                const updatedPayments = [...payments, newPayment];
+                setPayments(updatedPayments);
+
+                const totalPaid = updatedPayments
+                    .filter(p => p.invoiceNo === currentInvoice.invoiceNo)
+                    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+                const updatedInvoices = invoices.map(inv => {
+                    if (inv.invoiceNo === currentInvoice.invoiceNo) {
+                        inv.paidAmount = totalPaid;
+                        inv.balanceAmount = inv.totalAmount - totalPaid;
+                        inv.paymentStatus = totalPaid === 0 ? 'UNPAID' : 
+                                           totalPaid >= inv.totalAmount ? 'PAID' : 'PARTIAL';
+                    }
+                    return inv;
+                });
+
+                setInvoices(updatedInvoices);
+                setCurrentInvoice(updatedInvoices.find(inv => inv.invoiceNo === currentInvoice.invoiceNo));
+                saveData(updatedInvoices, updatedPayments, ocrData);
+                setShowPaymentModal(false);
+                alert('Payment added successfully!');
+            };
+
+            const filteredInvoices = invoices.filter(inv => {
+                const matchesSearch = inv.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesStatus = statusFilter === 'ALL' || getInvoiceStatus(inv) === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <div className="bg-blue-900 text-white p-4 shadow-lg">
+                        <div className="max-w-7xl mx-auto flex justify-between items-center">
+                            <div>
+                                <h1 className="text-2xl font-bold">Cement B2B Invoice System</h1>
+                                <p className="text-blue-200 text-sm">Focus ERP Style Interface</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="font-semibold">{user.name}</p>
+                                <p className="text-sm text-blue-200">Role: {user.role.toUpperCase()}</p>
+                                <select 
+                                    value={user.role} 
+                                    onChange={(e) => setUser({...user, role: e.target.value})}
+                                    className="mt-1 bg-blue-800 text-white text-xs px-2 py-1 rounded"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="superadmin">Super Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border-b">
+                        <div className="max-w-7xl mx-auto px-4">
+                            <div className="flex space-x-1">
+                                <button
+                                    onClick={() => setView('create')}
+                                    className={`px-6 py-3 font-medium ${view === 'create' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    Create Invoice
+                                </button>
+                                <button
+                                    onClick={() => setView('manage')}
+                                    className={`px-6 py-3 font-medium ${view === 'manage' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    Manage Documents
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto p-6">
+                        {view === 'create' && <CreateInvoiceView createInvoice={createInvoice} />}
+                        
+                        {view === 'manage' && (
+                            <ManageDocumentsView
+                                invoices={filteredInvoices}
+                                searchTerm={searchTerm}
+                                setSearchTerm={setSearchTerm}
+                                statusFilter={statusFilter}
+                                setStatusFilter={setStatusFilter}
+                                setCurrentInvoice={setCurrentInvoice}
+                                currentInvoice={currentInvoice}
+                                uploadDocument={uploadDocument}
+                                getInvoiceStatus={getInvoiceStatus}
+                                ocrData={ocrData}
+                                checkWeighmentVariance={checkWeighmentVariance}
+                                payments={payments}
+                                user={user}
+                                setShowPaymentModal={setShowPaymentModal}
+                            />
+                        )}
+                    </div>
+
+                    {showConfirm && (
+                        <ConfirmModal
+                            onConfirm={() => uploadDocument(showConfirm.invoiceNo, showConfirm.docType, showConfirm.file)}
+                            onCancel={() => setShowConfirm(null)}
+                        />
+                    )}
+
+                    {showPaymentModal && currentInvoice && (
+                        <PaymentModal
+                            invoice={currentInvoice}
+                            onSubmit={addPayment}
+                            onClose={() => setShowPaymentModal(false)}
+                            user={user}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const CreateInvoiceView = ({ createInvoice }) => {
+            const [invoiceNo, setInvoiceNo] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                createInvoice(invoiceNo);
+                setInvoiceNo('');
+            };
+
+            return (
+                <div className="bg-white rounded-lg shadow p-6">
+                    <h2 className="text-xl font-bold text-gray-800 mb-6">Create New Invoice</h2>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Invoice Number <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={invoiceNo}
+                                    onChange={(e) => setInvoiceNo(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Enter invoice number"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+                        >
+                            <span>➕</span>
+                            Create / Add Invoice
+                        </button>
+                    </form>
+                </div>
+            );
+        };
+
+        const ManageDocumentsView = ({
+            invoices, searchTerm, setSearchTerm, statusFilter, setStatusFilter,
+            setCurrentInvoice, currentInvoice, uploadDocument, getInvoiceStatus,
+            ocrData, checkWeighmentVariance, payments, user, setShowPaymentModal
+        }) => {
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Search Invoice
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Search by invoice number"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Filter by Status
+                                </label>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="ALL">All Invoices</option>
+                                    <option value="OPEN">Open</option>
+                                    <option value="PARTIAL">Partial</option>
+                                    <option value="COMPLETED">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow">
+                        <div className="p-4 border-b">
+                            <h3 className="font-semibold text-gray-800">Select Invoice</h3>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                            {invoices.length === 0 ? (
+                                <div className="p-8 text-center text-gray-500">
+                                    No invoices found. Create a new invoice to get started.
+                                </div>
+                            ) : (
+                                <div className="divide-y">
+                                    {invoices.map(inv => (
+                                        <div
+                                            key={inv.invoiceNo}
+                                            onClick={() => setCurrentInvoice(inv)}
+                                            className={`p-4 cursor-pointer hover:bg-gray-50 ${currentInvoice?.invoiceNo === inv.invoiceNo ? 'bg-blue-50' : ''}`}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <span className="font-semibold text-gray-800">{inv.invoiceNo}</span>
+                                                    <span className="text-sm text-gray-500 ml-4">
+                                                        {new Date(inv.createdDate).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <StatusBadge status={getInvoiceStatus(inv)} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {currentInvoice && (
+                        <>
+                            <DocumentUploadSection
+                                invoice={currentInvoice}
+                                uploadDocument={uploadDocument}
+                                ocrData={ocrData}
+                                checkWeighmentVariance={checkWeighmentVariance}
+                            />
+                            
+                            {(user.role === 'admin' || user.role === 'superadmin') && (
+                                <PaymentSection
+                                    invoice={currentInvoice}
+                                    payments={payments}
+                                    user={user}
+                                    setShowPaymentModal={setShowPaymentModal}
+                                />
+                            )}
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        const DocumentUploadSection = ({ invoice, uploadDocument, ocrData, checkWeighmentVariance }) => {
+            const docTypes = [
+                { key: 'invoice', label: 'Invoice' },
+                { key: 'lr', label: 'LR (Lorry Receipt)' },
+                { key: 'weighment1', label: 'Weighment Slip 1' },
+                { key: 'weighment2', label: 'Weighment Slip 2' },
+                { key: 'tollgate', label: 'Tollgate Slip' }
+            ];
+
+            const variance = checkWeighmentVariance(invoice.invoiceNo);
+
+            return (
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800">Document Upload & Tracking</h3>
+                        <span className="text-sm text-gray-500">Invoice: {invoice.invoiceNo}</span>
+                    </div>
+
+                    {variance && variance.hasVariance && (
+                        <div className="mb-6 bg-red-50 border border-red-200 rounded p-4 flex items-start gap-3">
+                            <span className="text-red-600 text-xl">⚠️</span>
+                            <div>
+                                <p className="font-semibold text-red-800">Weighment Variance Detected!</p>
+                                <p className="text-sm text-red-700">
+                                    Difference: {variance.percentage}% (W1: {variance.w1} kg, W2: {variance.w2} kg)
+                                    - Exceeds 0.5% threshold
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {docTypes.map(({ key, label }) => {
+                            const doc = invoice.documents[key];
+                            const extracted = ocrData[`${invoice.invoiceNo}-${key}`];
+                            
+                            return (
+                                <div key={key} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-gray-600">📄</span>
+                                        <h4 className="font-medium text-gray-800">{label}</h4>
+                                        {doc ? (
+                                            <span className="text-green-500 ml-auto">✅</span>
+                                        ) : (
+                                            <span className="text-red-400 ml-auto">❌</span>
+                                        )}
+                                    </div>
+
+                                    {doc ? (
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-gray-500 truncate">{doc.name}</p>
+                                            <p className="text-xs text-gray-400">
+                                                {new Date(doc.uploadedAt).toLocaleString()}
+                                            </p>
+                                            
+{extracted && (
+    <OCRGridForm data={extracted} />
+)}
+
+
+
+                                            <div className="flex gap-2">
+                                                <label className="flex-1 bg-blue-600 text-white text-center py-1.5 rounded text-sm cursor-pointer hover:bg-blue-700">
+                                                    Replace
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        onChange={(e) => uploadDocument(invoice.invoiceNo, key, e.target.files[0])}
+                                                        accept=".pdf,.jpg,.jpeg,.png"
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <label className="block bg-gray-100 border-2 border-dashed border-gray-300 rounded p-6 text-center cursor-pointer hover:bg-gray-50">
+                                            <span className="text-2xl">📤</span>
+                                            <p className="text-sm text-gray-600 mt-2">Upload {label}</p>
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                onChange={(e) => uploadDocument(invoice.invoiceNo, key, e.target.files[0])}
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                            />
+                                        </label>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const PaymentSection = ({ invoice, payments, user, setShowPaymentModal }) => {
+            const invoicePayments = payments.filter(p => p.invoiceNo === invoice.invoiceNo);
+
+            return (
+                <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <span>💵</span>
+                            Payment Tracking
+                        </h3>
+                        {user.role === 'superadmin' && (
+                            <button
+                                onClick={() => setShowPaymentModal(true)}
+                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+                            >
+                                <span>➕</span>
+                                Add Payment
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                        <div className="bg-blue-50 p-4 rounded">
+                            <p className="text-sm text-gray-600">Total Amount</p>
+                            <p className="text-xl font-bold text-gray-800">₹{invoice.totalAmount.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded">
+                            <p className="text-sm text-gray-600">Paid Amount</p>
+                            <p className="text-xl font-bold text-green-600">₹{invoice.paidAmount.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-red-50 p-4 rounded">
+                            <p className="text-sm text-gray-600">Balance Amount</p>
+                            <p className="text-xl font-bold text-red-600">₹{invoice.balanceAmount.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded">
+                            <p className="text-sm text-gray-600">Payment Status</p>
+                            <p className="text-xl font-bold text-purple-600">{invoice.paymentStatus}</p>
+                        </div>
+                    </div>
+
+                    {invoicePayments.length > 0 && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left">Date</th>
+                                        <th className="px-4 py-2 text-left">Amount</th>
+                                        <th className="px-4 py-2 text-left">Mode</th>
+                                        <th className="px-4 py-2 text-left">Reference No</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {invoicePayments.map(payment => (
+                                        <tr key={payment.id}>
+                                            <td className="px-4 py-2">{payment.date}</td>
+                                            <td className="px-4 py-2 font-semibold">₹{parseFloat(payment.amount).toLocaleString()}</td>
+                                            <td className="px-4 py-2">{payment.mode}</td>
+                                            <td className="px-4 py-2">{payment.referenceNo}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+const OCRGridForm = ({ data }) => {
+    const [form, setForm] = React.useState(data);
+
+    return (
+        <div className="mt-4 border rounded-lg p-4 bg-white">
+            <h4 className="font-semibold text-gray-700 mb-4">
+                Extracted Data (Editable)
+            </h4>
+
+            <div className="grid grid-cols-3 gap-6">
+                {Object.entries(form).map(([key, value]) => (
+                    <div key={key}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {key.replace(/_/g, ' ').toUpperCase()}
+                        </label>
+
+                        <input
+                            type="text"
+                            value={value}
+                            onChange={(e) =>
+                                setForm({...form, [key]: e.target.value})
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded
+                                       focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
+
+        const PaymentModal = ({ invoice, onSubmit, onClose, user }) => {
+            const [formData, setFormData] = useState({
+                date: new Date().toISOString().split('T')[0],
+                amount: '',
+                mode: 'Cash',
+                referenceNo: ''
+            });
+
+            if (user.role === 'user') {
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 max-w-md">
+                            <h3 className="text-lg font-semibold text-red-600 mb-4">Access Denied</h3>
+                            <p className="text-gray-700 mb-4">Only Admin and Super Admin can manage payments.</p>
+                            <button onClick={onClose} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.amount || parseFloat(formData.amount) <= 0) {
+                    alert('Please enter a valid amount');
+                    return;
+                }
+                onSubmit(formData);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+                        <h3 className="text-xl font-semibold text-gray-800 mb-6">Add Payment - Invoice {invoice.invoiceNo}</h3>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.amount}
+                                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode</label>
+                                    <select
+                                        value={formData.mode}
+                                        onChange={(e) => setFormData({...formData, mode: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option>Cash</option>
+                                        <option>Cheque</option>
+                                        <option>NEFT</option>
+                                        <option>RTGS</option>
+                                        <option>UPI</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Reference Number</label>
+                                <input
+                                    type="text"
+                                    value={formData.referenceNo}
+                                    onChange={(e) => setFormData({...formData, referenceNo: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Transaction/Cheque reference"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+                                >
+                                    Add Payment
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="flex-1 bg-gray-600 text-white py-2 rounded hover:bg-gray-700"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const ConfirmModal = ({ onConfirm, onCancel }) => {
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Replace Document?</h3>
+                        <p className="text-gray-600 mb-6">
+                            This document type already exists. Do you want to replace it with the new file?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onConfirm}
+                                className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700"
+                            >
+                                Yes, Replace
+                            </button>
+                            <button
+                                onClick={onCancel}
+                                className="flex-1 bg-gray-600 text-white py-2 rounded hover:bg-gray-700"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const StatusBadge = ({ status }) => {
+            const colors = {
+                OPEN: 'bg-yellow-100 text-yellow-800',
+                PARTIAL: 'bg-blue-100 text-blue-800',
+                COMPLETED: 'bg-green-100 text-green-800'
+            };
+
+            return (
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors[status]}`}>
+                    {status}
+                </span>
+            );
+        };
+
+        ReactDOM.render(<CementB2BSystem />, document.getElementById('root'));
+    </script>
+</body>
+</html>
