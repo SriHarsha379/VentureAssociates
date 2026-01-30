@@ -1024,6 +1024,11 @@
       align-items: center;
       gap: 8px;
     }
+      /* Hide Send Payment Reminder button */
+button[onclick^="sendPaymentReminder"] {
+  display: none !important;
+}
+
   </style>
 </head>
 <body>
@@ -1045,9 +1050,9 @@
         <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password">
       </div>
       <button id="loginBtn" class="btn-primary" style="width:100%;" onclick="handleLogin()">Sign in</button>
-      <p class="login-hint">
-        Default: <b>harshas379@gmail.com</b> / <b>root</b>
-      </p>
+<!--      <p class="login-hint">-->
+<!--        Default: <b>harshas379@gmail.com</b> / <b>root</b>-->
+<!--      </p>-->
     </div>
   </div>
 </div>
@@ -1197,7 +1202,7 @@
 
         <div class="modal-actions">
           <button class="btn-secondary" onclick="closeReminderModal()">Cancel</button>
-          <button class="btn-primary" onclick="submitReminder()">📤 Send Reminder</button>
+<!--          <button class="btn-primary" onclick="submitReminder()">📤 Send Reminder</button>-->
         </div>
       </div>
     </div>
@@ -1696,7 +1701,7 @@ const REQUIRED_DOC_TYPES = ["invoice", "lr", "party_weighment", "site_weighment"
 
 // ---------------- AUTH (Front-end gate) ----------------
 const AUTH_STORAGE_KEY = "erp_invoice_ui_logged_in_v1";
-const DEFAULT_USERNAME = "harshas379@gmail.com";
+const DEFAULT_USERNAME = "ventureassociates@gmail.com";
 const DEFAULT_PASSWORD = "root";
 
 function isLoggedIn() {
