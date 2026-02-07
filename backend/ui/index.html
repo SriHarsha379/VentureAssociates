@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Invoice Processing – ERP</title>
   <style>
+
+      .search-results-info {
+  background: #e7f3ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: #004085;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -1583,9 +1596,20 @@ button[onclick^="sendPaymentReminder"] {
 
     </div>
 
-    <!-- MANAGE TAB -->
-    <div id="manageTab" class="content hidden">
-      <h2 style="margin-bottom: 20px;">Your Invoices</h2>
+<!-- MANAGE TAB -->
+<div id="manageTab" class="content hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <h2 style="margin: 0;">Your Invoices</h2>
+    <div style="flex: 1; max-width: 400px;">
+      <input
+        id="manageSearchInput"
+        type="text"
+        placeholder="🔍 Search by invoice no, buyer name, vehicle no..."
+        style="width: 100%;"
+        oninput="filterInvoices()"
+      >
+    </div>
+  </div>
 
       <!-- Overdue Documents Alert -->
       <div id="overdueDocumentsSection" class="hidden" style="background: #f8d7da; border: 2px solid #dc3545; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
@@ -1602,9 +1626,20 @@ button[onclick^="sendPaymentReminder"] {
       <div id="invoiceList"></div>
     </div>
 
-    <!-- PAYMENTS TAB -->
-    <div id="paymentsTab" class="content hidden">
-      <h2 style="margin-bottom: 20px;">Payments & Ledger</h2>
+<!-- PAYMENTS TAB -->
+<div id="paymentsTab" class="content hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <h2 style="margin: 0;">Payments & Ledger</h2>
+    <div style="flex: 1; max-width: 400px;">
+      <input
+        id="paymentsSearchInput"
+        type="text"
+        placeholder="🔍 Search by invoice no, buyer name, payment mode..."
+        style="width: 100%;"
+        oninput="filterPayments()"
+      >
+    </div>
+  </div>
 
       <!-- Payment Reminders Section -->
       <div id="paymentRemindersSection" class="hidden" style="margin-bottom: 20px;">
@@ -1695,6 +1730,10 @@ button[onclick^="sendPaymentReminder"] {
 const $ = id => document.getElementById(id);
 let invoiceUIState = "INIT";
 let currentViewingInvoice = null;
+
+// Store data for filtering
+let allInvoices = [];
+let allPayments = [];
 
 const DOC_TYPES = ["invoice", "lr", "party_weighment", "site_weighment", "toll_gate"];
 const REQUIRED_DOC_TYPES = ["invoice", "lr", "party_weighment", "site_weighment"];
@@ -2123,10 +2162,130 @@ async function saveInvoice(status) {
   }
 }
 
+/* Search/Filter Functions */
+function filterInvoices() {
+  const searchTerm = $("manageSearchInput").value.toLowerCase().trim();
+
+  if (!searchTerm) {
+    // Show all invoices if search is empty
+    renderInvoices(allInvoices);
+    return;
+  }
+
+  const filtered = allInvoices.filter(inv => {
+    const invoiceNo = (inv.invoice_no || '').toLowerCase();
+    const buyerName = (inv.data?.buyer_name || '').toLowerCase();
+    const vehicleNo = (inv.data?.vehicle_no || '').toLowerCase();
+    const lrNo = (inv.data?.lr_no || '').toLowerCase();
+    const shipToParty = (inv.data?.ship_to_party || '').toLowerCase();
+    const orderNo = (inv.data?.order_no || '').toLowerCase();
+
+    return invoiceNo.includes(searchTerm) ||
+           buyerName.includes(searchTerm) ||
+           vehicleNo.includes(searchTerm) ||
+           lrNo.includes(searchTerm) ||
+           shipToParty.includes(searchTerm) ||
+           orderNo.includes(searchTerm);
+  });
+
+  renderInvoices(filtered);
+
+  // Show count and empty state
+  if (filtered.length === 0) {
+    $("invoiceList").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <p>No invoices found matching "${searchTerm}"</p>
+        <button class="btn-secondary" onclick="$('manageSearchInput').value=''; filterInvoices();" style="margin-top: 15px;">
+          Clear Search
+        </button>
+      </div>
+    `;
+  } else if (filtered.length !== allInvoices.length) {
+    // Show results count
+    const resultsInfo = document.createElement('div');
+    resultsInfo.className = 'search-results-info';
+    resultsInfo.innerHTML = `
+      <span>📊 Showing ${filtered.length} of ${allInvoices.length} invoices</span>
+      <button class="btn-secondary" onclick="$('manageSearchInput').value=''; filterInvoices();" style="padding: 4px 12px; font-size: 12px;">
+        Clear
+      </button>
+    `;
+    $("invoiceList").insertBefore(resultsInfo, $("invoiceList").firstChild);
+  }
+}
+
+function filterPayments() {
+  const searchTerm = $("paymentsSearchInput").value.toLowerCase().trim();
+
+  if (!searchTerm) {
+    // Show all payments if search is empty
+    renderPayments(allPayments);
+    return;
+  }
+
+  const filtered = allPayments.filter(inv => {
+    const invoiceNo = (inv.invoice_no || '').toLowerCase();
+    const buyerName = (inv.buyer_name || '').toLowerCase();
+    const paymentStatus = (inv.payment_status || '').toLowerCase();
+
+    // Search in payment history
+    const hasPaymentMatch = inv.payments?.some(p => {
+      const mode = (p.payment_mode || '').toLowerCase();
+      const reference = (p.reference_no || '').toLowerCase();
+      const date = (p.payment_date || '').toLowerCase();
+      const remarks = (p.remarks || '').toLowerCase();
+      return mode.includes(searchTerm) ||
+             reference.includes(searchTerm) ||
+             date.includes(searchTerm) ||
+             remarks.includes(searchTerm);
+    });
+
+    return invoiceNo.includes(searchTerm) ||
+           buyerName.includes(searchTerm) ||
+           paymentStatus.includes(searchTerm) ||
+           hasPaymentMatch;
+  });
+
+  renderPayments(filtered);
+
+  // Show count and empty state
+  if (filtered.length === 0) {
+    $("paymentList").innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <p>No payments found matching "${searchTerm}"</p>
+        <button class="btn-secondary" onclick="$('paymentsSearchInput').value=''; filterPayments();" style="margin-top: 15px;">
+          Clear Search
+        </button>
+      </div>
+    `;
+  } else if (filtered.length !== allPayments.length) {
+    // Show results count
+    const resultsInfo = document.createElement('div');
+    resultsInfo.className = 'search-results-info';
+    resultsInfo.innerHTML = `
+      <span>📊 Showing ${filtered.length} of ${allPayments.length} invoices</span>
+      <button class="btn-secondary" onclick="$('paymentsSearchInput').value=''; filterPayments();" style="padding: 4px 12px; font-size: 12px;">
+        Clear
+      </button>
+    `;
+    $("paymentList").insertBefore(resultsInfo, $("paymentList").firstChild);
+  }
+}
+
 /* Manage Invoices */
 async function loadInvoices() {
   const res = await fetch("/api/invoices");
   const invoices = await res.json();
+
+  // Store for filtering
+  allInvoices = invoices;
+
+  // Clear search when reloading
+  if ($("manageSearchInput")) {
+    $("manageSearchInput").value = '';
+  }
 
   const list = document.getElementById("invoiceList");
 
@@ -2190,6 +2349,14 @@ async function loadInvoices() {
     $("overdueDocumentsSection").classList.add("hidden");
     $("overdueCountBadge").classList.add("hidden");
   }
+
+  // Render invoices
+  renderInvoices(invoices);
+}
+
+function renderInvoices(invoices) {
+  const list = $("invoiceList");
+  const today = new Date();
 
   list.innerHTML = invoices.map(inv => {
     const docsCount = inv.documents ? Object.keys(inv.documents).length : 0;
@@ -2729,6 +2896,14 @@ async function loadPayments() {
     const paymentsRes = await fetch("/api/payments");
     const payments = await paymentsRes.json();
 
+    // Store for filtering
+    allPayments = payments;
+
+    // Clear search when reloading
+    if ($("paymentsSearchInput")) {
+      $("paymentsSearchInput").value = '';
+    }
+
     const list = $("paymentList");
 
     if (!payments.length) {
@@ -2811,69 +2986,76 @@ async function loadPayments() {
       $("paymentReminderBadge").classList.add("hidden");
     }
 
-    list.innerHTML = payments.map(inv => {
-      const statusClass = inv.payment_status.toLowerCase();
-
-      return `
-        <div class="payment-card">
-          <div class="payment-card-header">
-            <div class="payment-card-title">
-              <h3>${inv.invoice_no}</h3>
-              <span class="payment-badge ${statusClass}">${inv.payment_status}</span>
-            </div>
-            <button class="btn-add-payment" onclick="openPaymentModal('${inv.invoice_no}')">
-              + Add Payment
-            </button>
-          </div>
-
-          <div class="payment-info-grid">
-            <div class="payment-info-item">
-              <div class="payment-info-label">Buyer</div>
-              <div class="payment-info-value">${inv.buyer_name || '-'}</div>
-            </div>
-            <div class="payment-info-item">
-              <div class="payment-info-label">Invoice Date</div>
-              <div class="payment-info-value">${inv.invoice_date || '-'}</div>
-            </div>
-            <div class="payment-info-item">
-              <div class="payment-info-label">Invoice Amount</div>
-              <div class="payment-info-value">₹${inv.invoice_amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-            </div>
-            <div class="payment-info-item">
-              <div class="payment-info-label">Total Paid</div>
-              <div class="payment-info-value" style="color:#28a745;">₹${inv.total_paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-            </div>
-            <div class="payment-info-item">
-              <div class="payment-info-label">Balance Due</div>
-              <div class="payment-info-value" style="color:#dc3545;">₹${inv.balance_due.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-            </div>
-          </div>
-
-          ${inv.payments && inv.payments.length > 0 ? `
-            <div class="payment-history">
-              <div class="payment-history-header">
-                <div class="payment-history-title">Payment History (${inv.payments.length})</div>
-              </div>
-              ${inv.payments.map(p => `
-                <div class="payment-entry">
-                  <div class="payment-entry-left">
-                    <div class="payment-entry-amount">₹${p.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-                    <div class="payment-entry-details">
-                      ${p.payment_date} • ${p.payment_mode}${p.reference_no ? ' • ' + p.reference_no : ''}
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }).join('');
+    // Render payments
+    renderPayments(payments);
 
   } catch (error) {
     console.error("Error loading payments:", error);
     showToast("Failed to load payments", "error");
   }
+}
+
+function renderPayments(payments) {
+  const list = $("paymentList");
+
+  list.innerHTML = payments.map(inv => {
+    const statusClass = inv.payment_status.toLowerCase();
+
+    return `
+      <div class="payment-card">
+        <div class="payment-card-header">
+          <div class="payment-card-title">
+            <h3>${inv.invoice_no}</h3>
+            <span class="payment-badge ${statusClass}">${inv.payment_status}</span>
+          </div>
+          <button class="btn-add-payment" onclick="openPaymentModal('${inv.invoice_no}')">
+            + Add Payment
+          </button>
+        </div>
+
+        <div class="payment-info-grid">
+          <div class="payment-info-item">
+            <div class="payment-info-label">Buyer</div>
+            <div class="payment-info-value">${inv.buyer_name || '-'}</div>
+          </div>
+          <div class="payment-info-item">
+            <div class="payment-info-label">Invoice Date</div>
+            <div class="payment-info-value">${inv.invoice_date || '-'}</div>
+          </div>
+          <div class="payment-info-item">
+            <div class="payment-info-label">Invoice Amount</div>
+            <div class="payment-info-value">₹${inv.invoice_amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+          </div>
+          <div class="payment-info-item">
+            <div class="payment-info-label">Total Paid</div>
+            <div class="payment-info-value" style="color:#28a745;">₹${inv.total_paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+          </div>
+          <div class="payment-info-item">
+            <div class="payment-info-label">Balance Due</div>
+            <div class="payment-info-value" style="color:#dc3545;">₹${inv.balance_due.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+          </div>
+        </div>
+
+        ${inv.payments && inv.payments.length > 0 ? `
+          <div class="payment-history">
+            <div class="payment-history-header">
+              <div class="payment-history-title">Payment History (${inv.payments.length})</div>
+            </div>
+            ${inv.payments.map(p => `
+              <div class="payment-entry">
+                <div class="payment-entry-left">
+                  <div class="payment-entry-amount">₹${p.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                  <div class="payment-entry-details">
+                    ${p.payment_date} • ${p.payment_mode}${p.reference_no ? ' • ' + p.reference_no : ''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
 function createReminderCard(reminder, priority) {
